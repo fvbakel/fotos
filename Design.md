@@ -39,7 +39,7 @@ Goal is to have a container with all the settings and details that are relevant 
 ```mermaid
   classDiagram
 
-    class Parameters {
+    class Parameter {
         Name    : str
         Value   : str
     }
@@ -105,8 +105,3 @@ Goal is to have a container with all the settings and details that are relevant 
         label_photo()
     }
 ```
-
-
-
-
-
