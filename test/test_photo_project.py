@@ -1,8 +1,11 @@
 from test.config import *
+from test.make_data import *
+
 from photo_project import *
 import logging
 import unittest
 import time
+
 
 class TestModel(unittest.TestCase):
 
@@ -69,11 +72,28 @@ class TestModel(unittest.TestCase):
         self.assertEqual(photo.md5,photo_1.md5)
         self.assertEqual(photo.md5,photo_2.md5)
 
-        
+    def test_load_directory(self):
+        time_stamp = time.time()
+        db_file = f"{TEST_TMP_DIR}/{time_stamp}.db"
+        photoDB = PhotoProjectDB(db_file)
+        photoDB.init_tables()
+
+        project = PhotoProject(photoDB)
+        #base_path = '/home/fvbakel/tmp/test_foto/fotos 2007'
+        base_path = make_test_files()
+        project.add_base_dir(base_path)
+        base_dir = project.get_base_dir_on_path(base_path)
+        self.assertIsNotNone(base_dir)
+
+        project.basic_load_basedir(base_dir)
+
+        photo = project.get_photo_on_path(base_dir,'sub_dir_1/test_file_1.jpg')
+        self.assertIsNotNone(photo)
+
+        photo.read_basic_data()
+        project.update_photo(photo)
 
 
-    
-        
 
 
 

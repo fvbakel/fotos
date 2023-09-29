@@ -168,6 +168,19 @@ class PhotoProjectDB:
         cursor.execute(sql,fields)
         self._conn.commit()
 
+    def update_photo(self,photo_id:int,fields:list):
+        cursor = self._conn.cursor()
+        sql = """   
+            UPDATE photo 
+            SET     base_dir_id = ?,
+                    path        = ?,
+                    md5         = ?,
+                    timestamp   = ?
+            WHERE photo_id = ?
+        """
+        cursor.execute(sql,fields + [photo_id])
+        self._conn.commit()
+
     def _open_db(self):
         self._conn = sqlite3.connect(self.db_file)
 
@@ -197,7 +210,7 @@ class Photo:
 
     @property
     def full_path(self):
-        return self.base_dir.path / Path(self.path)
+        return str(self.base_dir.path / Path(self.path))
     
     @property
     def base_fields(self):
@@ -207,10 +220,10 @@ class PhotoProject:
 
     def __init__(self,db:PhotoProjectDB):
         self.db = db
-        self.load_base_dirs()
+        self._read_base_dirs_from_db()
         self.allowed_extensions = ('jpg','jpeg')
 
-    def load_base_dirs(self):
+    def _read_base_dirs_from_db(self):
         self.base_dirs:dict[int,BaseDir]        = dict()
         self.base_dirs_path:dict[str,BaseDir]   = dict()
         rows = self.db.get_all_basedirs()
@@ -227,7 +240,7 @@ class PhotoProject:
     
     def add_base_dir(self,dir_path:str):
         self.db.add_basedir(dir_path)
-        self.load_base_dirs()
+        self._read_base_dirs_from_db()
     
     def get_photo(self,photo_id:int):
         fields = self.db.get_photo(photo_id)
@@ -256,9 +269,12 @@ class PhotoProject:
             return
         photo.photo_id = result[0]
 
+    def update_photo(self,photo:Photo):
+        self.db.update_photo(photo.photo_id,photo.base_fields)
+
     def basic_load_basedir(self,base_dir:BaseDir):
-        for root, file in file_utils.get_files(base_dir,self.allowed_extensions):
+        for root, file in file_utils.get_files(base_dir.base_path,self.allowed_extensions):
             photo_path = pathlib.Path(root) / pathlib.Path(file)
-            photo_sub_path = str(photo_path).removeprefix(base_dir.base_path)
+            photo_sub_path = str(photo_path).removeprefix(base_dir.base_path)[1:]
             photo = Photo(base_dir,photo_sub_path)
             self.add_photo(photo)
