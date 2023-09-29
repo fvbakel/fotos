@@ -4,14 +4,17 @@
 
 ```mermaid
   graph TD;
-    PhotoProject --> PhotoLib
-    FaceRecognition --> PhotoLib
-    PhotoLib -->  PhotoGui
-    PhotoLib -->  PhotoCmd
+    photo_project --> file_utils
+    photo_lib --> photo_project  
+    photo_lib --> photo_classify
+    photo_lib --> file_utils
+    
+    photo_gui --> photo_lib
+    photo_cmd --> photo_lib
 
 ```
 
-## PhotoProject
+## photo_project
 
 Goal is to have a container with all the settings and details that are relevant for one instance.
 
@@ -87,8 +90,13 @@ Goal is to have a container with all the settings and details that are relevant 
     PhotoProjectDB --> BaseDir
     PhotoProjectDB --> Person
 
-
 ```
+
+## Photo lib
+
+Goal is to have all the higher functions in one lib, in dependent of the storage database and the user interface.
+
+
 
 ## Photo GUI
 
@@ -103,5 +111,6 @@ Goal is to have a container with all the settings and details that are relevant 
         view_stats()
         find_photo()
         label_photo()
+        find_duplicates()
     }
 ```
