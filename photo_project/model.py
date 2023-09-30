@@ -57,3 +57,5 @@ class Photo(BaseModel):
             self.timestamp = get_timestamp_exif(self.full_path)
         except OSError as err:
             logging.error(f'Timestamp not updated for {self.full_path}: {str(err)}')
+        except ValueError as err:
+            logging.error(f'Timestamp not updated for {self.full_path}: {str(err)}')

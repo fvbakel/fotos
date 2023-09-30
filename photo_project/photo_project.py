@@ -1,6 +1,8 @@
 from photo_project.model import *
 import file_utils
 import pathlib
+import time
+from datetime import timedelta
 
 """
 For now the peewee based model only supports one active database
@@ -32,12 +34,45 @@ class PhotoProject:
         return basedir
     
     @classmethod
-    def scan_basedir(cls,base_dir:BaseDir):
+    def scan_basedir(cls,base_dir:BaseDir,force=False):
+        interval = 10
         photo:Photo
-        for photo in Photo.select().where(Photo.base_dir == base_dir):
+        if force:
+            query = (Photo.select().where(Photo.base_dir == base_dir))
+        else:
+            query = (Photo.select().where(Photo.base_dir == base_dir, Photo.md5 == '' ))
+
+        total = query.count()
+        print(f'total to scan is: {total}')
+        if total == 0:
+            return
+        
+        start = time.time()
+        last = start
+        for nr,photo in enumerate(query):
             photo.set_md5_from_file()
             photo.set_timestamp_from_file()
             photo.save()
+            if (nr % interval) == 0:
+                now = time.time()
+                duration = now - start
+                progress = ((nr /total)*100)
+                average_speed = nr /duration
+                nr_todo = total - nr
+                remaining = timedelta(seconds=round(nr_todo * average_speed))
+                delta = timedelta(seconds=round(duration)) 
+                
+                print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.0f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
+
+        now = time.time()
+        duration = now - start
+        progress = 100
+        remaining = timedelta(seconds=0)
+        delta = timedelta(seconds=round(duration)) 
+
+        print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.0f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
+        print('')
+
 
     @classmethod
     def get_duplicates(cls):
