@@ -24,6 +24,7 @@ class PhotoCommand:
         parser_2.set_defaults(func=self._scan_basedir)
 
         parser_3 = sub_parsers.add_parser('get_duplicates',help='Make a list of all the photo\'s that are duplicate based on md5 sum')
+
         parser_3.set_defaults(func=self._get_duplicates)
         
 
@@ -58,8 +59,14 @@ class PhotoCommand:
         
         print(f'Searching duplicates')
         duplicates = PhotoProject.get_duplicates()
+        total = 0
         for duplicate in duplicates:
-            print(f'{duplicate.md5} : {duplicate.paths}')
+            print(f'{duplicate.md5}:')
+            paths = duplicate.paths.split(',')
+            total += len(paths)
+            for path in paths:
+                print(f'   {path}')
+        print(f'total unique photos: {len(duplicates)} number of duplicates: {total}')
         print('Ready')
         PhotoProject.close_current_database()
         

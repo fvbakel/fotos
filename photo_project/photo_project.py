@@ -79,6 +79,7 @@ class PhotoProject:
         duplicate_md5_query = ( Photo
             .select(Photo.md5,fn.GROUP_CONCAT(Photo.full_path).alias('paths'))
             .join(BaseDir, on=(BaseDir.dir_id == Photo.base_dir))
+            .where(Photo.md5 != '')
             .group_by(Photo.md5)
             .having(fn.Count(Photo.md5) > 1)
         )
