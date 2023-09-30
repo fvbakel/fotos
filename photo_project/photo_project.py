@@ -64,7 +64,7 @@ class PhotoProject:
                 remaining = timedelta(seconds=round(nr_todo / average_speed))
                 delta = timedelta(seconds=round(duration)) 
                 
-                print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.0f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
+                print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
 
         now = time.time()
         duration = now - start
@@ -72,7 +72,7 @@ class PhotoProject:
         remaining = timedelta(seconds=0)
         delta = timedelta(seconds=round(duration)) 
         average_speed = float(total) / duration
-        print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.0f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
+        print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
         print('')
 
 
