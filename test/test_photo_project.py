@@ -2,11 +2,9 @@ from test.config import *
 from test.make_data import *
 
 from photo_project import *
-import logging
 import unittest
 import time
 from datetime import datetime
-import file_utils
 
 
 class TestModel(unittest.TestCase):
@@ -14,8 +12,7 @@ class TestModel(unittest.TestCase):
     def test_basic_db_functions(self):
         time_stamp = time.time()
         db_file = f"{TEST_TMP_DIR}/{time_stamp}.db"
-        set_current_database(db_file)
-        create_tables()
+        PhotoProject.set_current_database(db_file)
         
         Parameter.create(name='MODEL',value='test.yml')
         model = Parameter.select(Parameter.name == 'MODEL')
@@ -31,21 +28,19 @@ class TestModel(unittest.TestCase):
 
         photo.set_md5_from_file()
 
-        close_current_database()
+        PhotoProject.close_current_database()
 
     def test_load_directory(self):
         time_stamp = time.time()
         db_file = f"{TEST_TMP_DIR}/{time_stamp}.db"
-        set_current_database(db_file)
-        create_tables()
+        PhotoProject.set_current_database(db_file)
 
-        project = PhotoProject()
         base_path = make_test_files()
 
         basedir = BaseDir.create(base_path = base_path)
         self.assertIsNotNone(basedir)
 
-        project.basic_load_basedir(basedir)
+        PhotoProject.basic_load_basedir(basedir)
 
         photo:Photo = Photo.select().where(Photo.base_dir == basedir and Photo.path == 'sub_dir_1/test_file_1.jpg').get()
         self.assertIsNotNone(photo)
@@ -54,4 +49,4 @@ class TestModel(unittest.TestCase):
         photo.set_md5_from_file()
         photo.save()
 
-        close_current_database()
+        PhotoProject.close_current_database()

@@ -29,9 +29,6 @@ class BaseDir(BaseModel):
     dir_id      = PrimaryKeyField()
     base_path   = CharField(unique=True)
 
-    class Meta:
-        database = database
-
 class Photo(BaseModel):
 
     photo_id    = PrimaryKeyField()
@@ -39,6 +36,11 @@ class Photo(BaseModel):
     path        = CharField()
     md5         = CharField(null=True)
     timestamp   = DateTimeField(null=True)
+
+    class Meta:
+        indexes = (
+            (('base_dir', 'path'), True),
+        )
     
     @hybrid_property
     def full_path(self):
