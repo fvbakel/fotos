@@ -8,6 +8,7 @@ database = SqliteDatabase(None)
 def set_current_database(db_file:str):
     database.init(db_file)
     database.connect()
+    create_tables()
 
 def close_current_database():
     database.close()
@@ -21,12 +22,12 @@ class BaseModel(Model):
 
 
 class Parameter(BaseModel):
-    name    = CharField(),
+    name    = CharField(unique=True),
     value   = CharField()
 
 class BaseDir(BaseModel):
     dir_id      = PrimaryKeyField()
-    base_path   = CharField()
+    base_path   = CharField(unique=True)
 
     class Meta:
         database = database
