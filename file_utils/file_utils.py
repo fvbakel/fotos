@@ -12,15 +12,15 @@ def get_hash_for_file(filename:str):
 
 def get_timestamp_exif(filename:str):
     if not filename.lower().endswith(('jpg','jpeg')):
-        return 0
+        return None
     tag = "EXIF DateTimeOriginal"
     with open(filename, "rb") as f:
         tags = exifread.process_file(f,stop_tag = tag)
 
     if not tag in tags:
-        return 0
+        return None
     
-    return datetime.datetime.strptime(str(tags[tag]), "%Y:%m:%d %H:%M:%S").timestamp()
+    return datetime.datetime.strptime(str(tags[tag]), "%Y:%m:%d %H:%M:%S")
     
 
 

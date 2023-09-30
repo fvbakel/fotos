@@ -3,9 +3,6 @@ from test.make_data import *
 from file_utils import *
 import logging
 import unittest
-import time
-import pathlib
-import shutil
 
 
 class TestFileUtils(unittest.TestCase):

@@ -1,6 +1,11 @@
 from photo_project.photo_project import (
-    PhotoProjectDB,
-    PhotoProject,
+    PhotoProject
+)
+from photo_project.model import (
+    Photo,
     BaseDir,
-    Photo
+    Parameter,
+    create_tables,
+    set_current_database,
+    close_current_database
 )
