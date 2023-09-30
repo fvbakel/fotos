@@ -5,20 +5,21 @@
 ```mermaid
   graph TD;
     photo_project --> file_utils
-    photo_lib --> photo_project  
-    photo_lib --> photo_classify
-    photo_lib --> file_utils
-    
-    photo_gui --> photo_lib
-    photo_cmd --> photo_lib
+    photo_project --> model.py
+    model.py --> peewee
+    model.py --> file_utils
+    peewee --> database
+    photo_project --> photo_classify   
+    photo_gui --> photo_project
+    photo_cmd --> photo_project
 
 ```
 
 ## photo_project
 
-Goal is to have a container with all the settings and details that are relevant for one instance.
+Goal is to have one entry point for all the functionality, independent of the user interface
 
-### Overview
+### Overview of a photo project
 
 ```mermaid
   graph LR;
@@ -39,16 +40,19 @@ Goal is to have a container with all the settings and details that are relevant 
 
 ### Database
 
+The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
+
 ```mermaid
   classDiagram
 
     class Parameter {
-        Name    : str
-        Value   : str
+        name    : str
+        value   : str
     }
 
     class Photo {
         id          : int
+        basedir     : int
         md5         : str
         path        : str
         timestamp   : timestamp
@@ -65,38 +69,16 @@ Goal is to have a container with all the settings and details that are relevant 
     }
 
     class PhotoPerson {
-        photo_id    : int
-        person_id   : int
+        photo    : int
+        person   : int
     }
 
-    class PhotoProjectDB {
-        file                    : str
-        open()
-        close()
-        get_parameter()         : str 
-        add_photo(Photo)
-        remove_photo(Photo)
-        find_photo()            : Photos
-        add_person(Person)
-        remove_person(person)
-    }
 
     Photo --> BaseDir
     Photo --> PhotoPerson
     PhotoPerson --> Person
 
-    PhotoProjectDB --> Parameters
-    PhotoProjectDB --> Photo
-    PhotoProjectDB --> BaseDir
-    PhotoProjectDB --> Person
-
 ```
-
-## Photo lib
-
-Goal is to have all the higher functions in one lib, in dependent of the storage database and the user interface.
-
-
 
 ## Photo GUI
 
