@@ -34,7 +34,7 @@ class PhotoProject:
         return basedir
     
     @classmethod
-    def scan_basedir(cls,base_dir:BaseDir,force=False):
+    def scan_basedir(cls,base_dir:BaseDir,force=False,chunks=True):
         interval = 10
         photo:Photo
         if force:
@@ -50,7 +50,7 @@ class PhotoProject:
         start = time.time()
         last = start
         for nr,photo in enumerate(query):
-            photo.set_md5_from_file()
+            photo.set_md5_from_file(chunks)
             photo.set_timestamp_from_file()
             photo.save()
             if (nr % interval) == 0:

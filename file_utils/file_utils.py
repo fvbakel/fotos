@@ -3,13 +3,24 @@ import exifread
 import datetime
 import os
 
-def get_hash_for_file(filename:str):
+def get_hash_for_file(filename:str,chunks:True):
+    if chunks:
+        return _get_hash_for_file_chunks(filename)
+    else:
+        return _get_hash_for_file_at_once(filename)
+       
+
+"""
+Function below is a risky incase of a large file, 
+but might be faster with small files
+"""
+def _get_hash_for_file_at_once(filename:str):
     with open(filename, "rb") as f:
         file_hash =  hashlib.md5()
         file_hash.update(f.read())
     return file_hash.hexdigest()
 
-def get_hash_for_file_chuncks(filename:str):
+def _get_hash_for_file_chunks(filename:str):
     with open(filename, "rb") as f:
         file_hash = hashlib.md5()
         while chunk := f.read(8192):

@@ -20,6 +20,7 @@ class PhotoCommand:
         parser_2 = sub_parsers.add_parser('scan_basedir',help='Scan a base directory for photos and add these to the database')
         parser_2.add_argument("dir_id", help="Id of the base directory",type=int, default=1)
         parser_2.add_argument("-a","--all",help="Recalculate even if the fields is already filled in the database", action='store_true',default=False)
+        parser_2.add_argument("-n","--no_chunks",help="Don't calculate the MD5 sum in chunks", action='store_true',default=False)
 
         parser_2.set_defaults(func=self._scan_basedir)
 
@@ -50,7 +51,7 @@ class PhotoCommand:
         
         basedir:BaseDir = BaseDir.get_by_id(self._args.dir_id)
         print(f'scanning basedir {basedir.dir_id} : {basedir.base_path}')
-        PhotoProject.scan_basedir(base_dir=basedir,force=self._args.all)
+        PhotoProject.scan_basedir(base_dir=basedir,force=self._args.all,chunks=not self._args.no_chunks)
         print('Ready')
         PhotoProject.close_current_database()
 

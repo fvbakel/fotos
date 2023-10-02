@@ -46,9 +46,9 @@ class Photo(BaseModel):
     def full_path(self):
         return self.base_dir.base_path + '/' + self.path
     
-    def set_md5_from_file(self):
+    def set_md5_from_file(self,chunks=True):
         try:
-            self.md5 = get_hash_for_file(self.full_path)
+            self.md5 = get_hash_for_file(self.full_path, chunks)
         except OSError as err:
             logging.error(f'Md5 not updated for {self.full_path}: {str(err)}')
 
