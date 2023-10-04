@@ -69,14 +69,31 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
     }
 
     class PhotoPerson {
-        photo    : int
-        person   : int
+        photo      : int
+        person     : int
+        assignment : str 
+    }
+
+    class Rectangle {
+      x       : int
+      y       : int
+      x_size  : int
+      y_size  : int
+    }
+
+    class PhotoProcess {
+      photo         : int
+      process_name  : str
+      status        : str
+      last_date     : datetime
     }
 
 
     Photo --> BaseDir
     Photo --> PhotoPerson
+    Photo --> PhotoProcess
     PhotoPerson --> Person
+    PhotoPerson --> Rectangle
 
 ```
 

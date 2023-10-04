@@ -1,5 +1,8 @@
 from photo_project.photo_project import (
-    PhotoProject
+    PhotoProject,
+    PhotoProcessing,
+    Status,
+    ExistsProcessing
 )
 from photo_project.model import (
     Photo,

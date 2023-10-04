@@ -3,7 +3,8 @@ from photo_project.measure import MeasureProgress,MeasureDuration
 import file_utils
 import pathlib
 import time
-from datetime import timedelta
+from datetime import timedelta,datetime
+import logging
 
 """
 For now the peewee based model only supports one active database
@@ -111,3 +112,62 @@ class PhotoProject:
         )
         return duplicate_photos_query
 
+class Status:
+    NEW         = 'new'
+    ERROR       = 'error'
+    REDO        = 'redo'
+    PROCESSING  = 'processing'
+    DONE        = 'done'
+
+class PhotoProcessing:
+
+    @property
+    def name(self):
+        return self.__class__.__name__
+
+    def init_database(self):
+        if self.name is not None and self.name != '':
+            sql = """
+            insert into photoprocess (photo_id,process_name,status,last_date)
+            select t1.photo_id,?,?,datetime('now')
+            from photo t1
+            left join photoprocess t2 on (t2.photo_id == t1.photo_id and t2.process_name == ?)
+            where t2.photo_id is null
+            """
+            database.execute_sql(sql,[self.name,Status.NEW,self.name])
+            database.commit()
+    
+    def get(self,status_list:list[str]):
+        query = ( PhotoProcess
+            .select()
+            .where(PhotoProcess.process_name == self.name and PhotoProcess.status << status_list)
+        )
+        return query
+    
+    #abstracmethod
+    def do_process(self,photo_process:PhotoProcess):
+        pass
+
+    def run(self,status_list:list[str] = None):
+        if status_list is None:
+            self.current_query = self.get((Status.NEW,Status.REDO))
+        else:
+            self.current_query = self.get(status_list)
+        photo_process:PhotoProcess
+        for photo_process in self.current_query:
+            photo_process.status = Status.PROCESSING
+            photo_process.last_date = datetime.now()
+            try:
+                self.do_process(photo_process)
+                photo_process.status = Status.DONE
+                photo_process.save()
+            except Exception as err:
+                logging.error(f'Unable to process {self.name} on photo {photo_process.photo.full_path} {str(err)} ')
+                photo_process.status = Status.ERROR
+                photo_process.save()
+        
+class ExistsProcessing(PhotoProcessing):
+
+    def do_process(self,photo_process:PhotoProcess):
+        photo_process.photo.exists = pathlib.Path(photo_process.full_path).is_file()
+        photo_process.photo.save()

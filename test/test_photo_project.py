@@ -50,3 +50,42 @@ class TestModel(unittest.TestCase):
         photo.save()
 
         PhotoProject.close_current_database()
+
+    def test_processing(self):
+        time_stamp = time.time()
+        db_file = f"{TEST_TMP_DIR}/{time_stamp}.db"
+        PhotoProject.set_current_database(db_file)
+        base_path = make_test_files()
+
+        basedir = BaseDir.create(base_path = base_path)
+        self.assertIsNotNone(basedir)
+
+        PhotoProject.basic_load_basedir(basedir)
+
+        processing = PhotoProcessing() 
+
+        processing.init_database()
+        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertGreater(len(todo),0)
+        processing.run()
+
+        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertEqual(len(todo),0)
+
+        todo = [ process for process in  processing.get(status_list=[Status.DONE])]
+        self.assertGreater(len(todo),0)
+
+        processing = ExistsProcessing() 
+
+        processing.init_database()
+        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertGreater(len(todo),0)
+        processing.run()
+
+        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertEqual(len(todo),0)
+
+        todo = [ process for process in  processing.get(status_list=[Status.DONE])]
+        self.assertGreater(len(todo),0)
+
+        PhotoProject.close_current_database()

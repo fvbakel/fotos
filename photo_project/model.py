@@ -14,7 +14,7 @@ def close_current_database():
     database.close()
 
 def create_tables():
-    database.create_tables([Parameter,BaseDir,Photo])
+    database.create_tables([Parameter,BaseDir,Photo,PhotoProcess])
 
 class BaseModel(Model):
     class Meta:
@@ -36,6 +36,7 @@ class Photo(BaseModel):
     path        = CharField()
     md5         = CharField(null=True)
     timestamp   = DateTimeField(null=True)
+    exists      = BooleanField(default=True)
 
     class Meta:
         indexes = (
@@ -59,3 +60,15 @@ class Photo(BaseModel):
             logging.error(f'Timestamp not updated for {self.full_path}: {str(err)}')
         except ValueError as err:
             logging.error(f'Timestamp not updated for {self.full_path}: {str(err)}')
+
+class PhotoProcess(BaseModel):
+    id              = AutoField()
+    photo           = ForeignKeyField(Photo,backref=None)
+    process_name    = CharField()
+    status          = CharField()
+    last_date       = DateTimeField(null=True)
+
+    class Meta:
+        indexes = (
+            (('photo', 'process_name'), True),
+        )
