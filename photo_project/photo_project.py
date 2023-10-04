@@ -1,4 +1,5 @@
 from photo_project.model import *
+from photo_project.measure import MeasureProgress,MeasureDuration
 import file_utils
 import pathlib
 import time
@@ -7,6 +8,9 @@ from datetime import timedelta
 """
 For now the peewee based model only supports one active database
 so the Photo project has class methods only.
+
+TODO: refactor to singleton
+
 """
 class PhotoProject:
 
@@ -47,33 +51,38 @@ class PhotoProject:
         if total == 0:
             return
         
-        start = time.time()
-        last = start
+        measure_md5 = MeasureDuration(autostart=False)
+        measure_timestamp = MeasureDuration(autostart=False)
+        measure_database_save =MeasureDuration(autostart=False)
+        measure = MeasureProgress(total=total)
         for nr,photo in enumerate(query):
+            measure_md5.start()
             photo.set_md5_from_file(chunks)
+            measure_md5.stop()
+            measure_timestamp.start()
             photo.set_timestamp_from_file()
+            measure_timestamp.stop()
+            measure_database_save.start()
             photo.save()
+            measure_database_save.stop()
             if (nr % interval) == 0:
-                now = time.time()
-                duration = now - start
-                progress = ((nr /total)*100)
-                average_speed = float(nr) / duration
-                nr_todo = total - nr
-                if average_speed == 0:
-                    average_speed = 0.001
-                remaining = timedelta(seconds=round(nr_todo / average_speed))
-                delta = timedelta(seconds=round(duration)) 
-                
-                print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
+                measure.done = nr
+                delta       = timedelta(seconds=round(measure.duration_seconds)) 
+                remaining   = timedelta(seconds=round(measure.remaining_estimate_sec))
+                print(f'\rProgress: {measure.done_percentage:03.4f}%  speed (photo/sec): {measure.average_speed_nr_per_sec:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}'.ljust(130),end = '')
 
-        now = time.time()
-        duration = now - start
-        progress = 100
-        remaining = timedelta(seconds=0)
-        delta = timedelta(seconds=round(duration)) 
-        average_speed = float(total) / duration
-        print(f'\rProgress: {progress:03.4f}%  speed (photo/sec): {average_speed:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}   ',end = '')
+        measure.stop()
+        delta       = timedelta(seconds=round(measure.duration_seconds)) 
+        remaining   = timedelta(seconds=round(measure.remaining_estimate_sec))
+
+        print(f'\rProgress: {measure.done_percentage:03.4f}%  speed (photo/sec): {measure.average_speed_nr_per_sec:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo.path[-20:]}'.ljust(130),end = '')
         print('')
+        delta       = timedelta(seconds=round(measure_md5.duration_seconds))
+        print(f'The md5 generation took in total {delta}')
+        delta       = timedelta(seconds=round(measure_timestamp.duration_seconds))
+        print(f'The timestamp extraction took in total {delta}')
+        delta       = timedelta(seconds=round(measure_database_save.duration_seconds))
+        print(f'The database save took in total {delta}')
 
 
     @classmethod

@@ -6,3 +6,7 @@ from photo_project.model import (
     BaseDir,
     Parameter
 )
+from photo_project.measure import (
+    MeasureDuration,
+    MeasureProgress
+)
