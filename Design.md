@@ -69,9 +69,9 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
     }
 
     class PhotoPerson {
-        photo      : int
-        person     : int
-        assignment : str 
+        photo       : int
+        person      : int
+        assigned_by : str 
     }
 
     class Rectangle {

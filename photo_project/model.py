@@ -14,7 +14,7 @@ def close_current_database():
     database.close()
 
 def create_tables():
-    database.create_tables([Parameter,BaseDir,Photo,PhotoProcess])
+    database.create_tables([Parameter,BaseDir,Photo,PhotoProcess,Person,PhotoPerson])
 
 class BaseModel(Model):
     class Meta:
@@ -72,3 +72,13 @@ class PhotoProcess(BaseModel):
         indexes = (
             (('photo', 'process_name'), True),
         )
+
+class Person(BaseModel):
+    person_id   = PrimaryKeyField()
+    name        = CharField()
+
+class PhotoPerson(BaseModel):
+    id              = AutoField()
+    photo           = ForeignKeyField(Photo,backref=None)
+    person          = ForeignKeyField(Person,backref=None,null=True)
+    assigned_by     = CharField()

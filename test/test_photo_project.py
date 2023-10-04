@@ -28,6 +28,10 @@ class TestModel(unittest.TestCase):
 
         photo.set_md5_from_file()
 
+        photoperson = PhotoPerson.create(photo=photo,assigned_by = 'test program')
+
+        person = Person.create(name='Person one')
+
         PhotoProject.close_current_database()
 
     def test_load_directory(self):
