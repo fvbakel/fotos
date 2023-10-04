@@ -115,7 +115,7 @@ class PhotoProject:
 class Status:
     NEW         = 'new'
     ERROR       = 'error'
-    REDO        = 'redo'
+    TODO        = 'todo'
     PROCESSING  = 'processing'
     DONE        = 'done'
 
@@ -144,15 +144,19 @@ class PhotoProcessing:
         )
         return query
     
+    def update_status(self,old_status,new_status):
+        query =  ( PhotoProcess
+            .update(status = new_status)
+            .where(PhotoProcess.process_name == self.name and PhotoProcess.status == old_status)
+        )
+        query.execute()
+    
     #abstracmethod
     def do_process(self,photo_process:PhotoProcess):
         pass
 
-    def run(self,status_list:list[str] = None):
-        if status_list is None:
-            self.current_query = self.get((Status.NEW,Status.REDO))
-        else:
-            self.current_query = self.get(status_list)
+    def run(self):
+        self.current_query = self.get([Status.TODO])
         photo_process:PhotoProcess
         for photo_process in self.current_query:
             photo_process.status = Status.PROCESSING

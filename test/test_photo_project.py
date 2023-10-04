@@ -51,6 +51,27 @@ class TestModel(unittest.TestCase):
 
         PhotoProject.close_current_database()
 
+    def do_processing(self,processing:PhotoProcessing):
+        processing.init_database()
+        test_list = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertGreater(len(test_list),0)
+
+        processing.run()
+        test_list = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertGreater(len(test_list),0)
+
+        processing.update_status(old_status=Status.NEW,new_status=Status.TODO)
+        test_list = [ process for process in  processing.get(status_list=[Status.NEW])]
+        self.assertEqual(len(test_list),0)
+        test_list = [ process for process in  processing.get(status_list=[Status.TODO])]
+        self.assertGreater(len(test_list),0)
+
+        processing.run()
+        test_list = [ process for process in  processing.get(status_list=[Status.TODO])]
+        self.assertEqual(len(test_list),0)
+        test_list = [ process for process in  processing.get(status_list=[Status.DONE])]
+        self.assertGreater(len(test_list),0)
+
     def test_processing(self):
         time_stamp = time.time()
         db_file = f"{TEST_TMP_DIR}/{time_stamp}.db"
@@ -62,30 +83,7 @@ class TestModel(unittest.TestCase):
 
         PhotoProject.basic_load_basedir(basedir)
 
-        processing = PhotoProcessing() 
-
-        processing.init_database()
-        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
-        self.assertGreater(len(todo),0)
-        processing.run()
-
-        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
-        self.assertEqual(len(todo),0)
-
-        todo = [ process for process in  processing.get(status_list=[Status.DONE])]
-        self.assertGreater(len(todo),0)
-
-        processing = ExistsProcessing() 
-
-        processing.init_database()
-        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
-        self.assertGreater(len(todo),0)
-        processing.run()
-
-        todo = [ process for process in  processing.get(status_list=[Status.NEW])]
-        self.assertEqual(len(todo),0)
-
-        todo = [ process for process in  processing.get(status_list=[Status.DONE])]
-        self.assertGreater(len(todo),0)
+        self.do_processing(PhotoProcessing() )
+        self.do_processing(ExistsProcessing() )
 
         PhotoProject.close_current_database()
