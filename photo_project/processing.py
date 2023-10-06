@@ -90,25 +90,32 @@ class FaceDetect(PhotoProcessing):
         self.default_model_file = "/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml"
         self.face_cascade = cv2.CascadeClassifier(self.default_model_file)
         self.scale_factor = 1.3
+        self.minNeighbors = 5
+        self.minSize = (150,150)
+        self.face_threshold = 3
+        
 
     def set_image(self,image):
         self.current_image = image
         self.current_gray_image = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
     
     def get_faces_rectangles(self):
-        all_faces = self.face_cascade.detectMultiScale(self.current_gray_image, scaleFactor=self.scale_factor, minNeighbors=6, minSize=(150,150))
-        if len(all_faces) >  1:
-            overlap = False
-            for face in all_faces:
-                overlap = find_overlap(face,all_faces)
-                if overlap:
-                    break
-            if overlap:
-                self.faces = [all_faces[0]]
-            else:
-                self.faces = all_faces
-        else:
-            self.faces = all_faces
+        #all_faces = self.face_cascade.detectMultiScale(self.current_gray_image, scaleFactor=self.scale_factor, minNeighbors=6, minSize=(150,150))
+        all_faces, rejectLevels, levelWeights = self.face_cascade.detectMultiScale3(
+            image               = self.current_gray_image, 
+            scaleFactor         = self.scale_factor, 
+            minNeighbors        = self.minNeighbors, 
+            minSize             = self.minSize,
+            outputRejectLevels  = True
+            )
+        self.faces = []
+
+        for levelWeight, face in sorted(zip(levelWeights, all_faces),reverse=True):
+            if levelWeight < self.face_threshold:
+                continue
+            if find_overlap(face,self.faces):
+                continue
+            self.faces.append(face)
 
         return self.faces
 
