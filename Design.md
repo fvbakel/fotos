@@ -4,10 +4,10 @@
 
 ```mermaid
   graph TD;
-    photo_project --> file_utils
+    photo_project --> util_functions
     photo_project --> model.py
     model.py --> peewee
-    model.py --> file_utils
+    model.py --> util_functions
     peewee --> database
     photo_project --> photo_classify   
     photo_gui --> photo_project
