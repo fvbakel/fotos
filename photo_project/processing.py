@@ -53,7 +53,9 @@ class PhotoProcessing:
     def run(self):
         self.current_query = self.get([Status.TODO])
         photo_process:PhotoProcess
-        for photo_process in self.current_query:
+        total = (self.current_query.select(fn.count())).get().count
+        measure = MeasureProgress(total=total)
+        for nr,photo_process in enumerate(self.current_query):
             photo_process.status = Status.PROCESSING
             photo_process.last_date = datetime.now()
             try:
@@ -66,6 +68,14 @@ class PhotoProcessing:
                 photo_process.status = Status.ERROR
                 photo_process.save()
                 database.commit()
+            
+            measure.done = nr+1
+            delta       = timedelta(seconds=round(measure.duration_seconds)) 
+            remaining   = timedelta(seconds=round(measure.remaining_estimate_sec))
+            print(f'\rProgress: {measure.done_percentage:03.4f}%  speed (photo/sec): {measure.average_speed_nr_per_sec:.1f}  elapsed: {delta} remaining: {remaining} last photo: {photo_process.photo.full_path[-20:]}'.ljust(130),end = '')
+
+        measure.stop()
+        print('')
         
 class ExistsProcessing(PhotoProcessing):
 
