@@ -45,3 +45,4 @@ def get_files(path:str,extensions_lower_case:tuple[str]):
             if file.lower().endswith( extensions_lower_case ):
                 yield root, file
         
+

@@ -16,5 +16,6 @@ from photo_project.measure import (
 from photo_project.processing import (
     PhotoProcessing,
     Status,
-    ExistsProcessing
+    ExistsProcessing,
+    FaceDetect
 )

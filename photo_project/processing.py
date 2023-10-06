@@ -1,5 +1,6 @@
 from photo_project.model import *
 from photo_project.measure import MeasureProgress,MeasureDuration
+from util_functions import find_overlap
 import pathlib
 from datetime import timedelta,datetime
 import logging
@@ -67,7 +68,7 @@ class PhotoProcessing:
 class ExistsProcessing(PhotoProcessing):
 
     def do_process(self,photo_process:PhotoProcess):
-        photo_process.photo.exists = pathlib.Path(photo_process.full_path).is_file()
+        photo_process.photo.exists = pathlib.Path(photo_process.photo.full_path).is_file()
         photo_process.photo.save()
 
 
@@ -82,21 +83,12 @@ class FaceDetect(PhotoProcessing):
         self.current_image = image
         self.current_gray_image = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2GRAY)
     
-    def find_overlap(self,rect,all_rect):
-        if len(rect) == 4:
-            x_1,y_1,w_1,h_1 = rect
-            for (x,y,w,h) in all_rect:
-                if  (x > x_1 and x < x_1+w) or (x+w_1 > x_1 and x+w_1 < x_1+w) and\
-                    (y > y_1 and y < y_1+h) or (y+h_1 > y_1 and y+h_1 < y_1+h):
-                    return True
-        return False
-
     def get_faces_rectangles(self):
-        all_faces = self.face_cascade.detectMultiScale(self.current_gray_image, self.scale_factor, 5)
+        all_faces = self.face_cascade.detectMultiScale(self.current_gray_image, scaleFactor=self.scale_factor, minNeighbors=6, minSize=(150,150))
         if len(all_faces) >  1:
             overlap = False
             for face in all_faces:
-                overlap = self.find_overlap(face,all_faces)
+                overlap = find_overlap(face,all_faces)
                 if overlap:
                     break
             if overlap:
@@ -113,6 +105,6 @@ class FaceDetect(PhotoProcessing):
         image = cv2.imread(photo_process.photo.full_path)
         self.set_image(image)
         rects = self.get_faces_rectangles()
-        for rect in rects:
+        for x,y,w,h in rects:
             # todo check for overlap with existing in database
-            PhotoPerson.create(photo=photo_process.photo,assigned_by=self.name)
+            PhotoPerson.create(photo=photo_process.photo,assigned_by=self.name,x=x,y=y,w=w,h=h)

@@ -1,5 +1,7 @@
 from argparse import ArgumentParser
 from photo_project import *
+from util_functions import resize_image
+import cv2
 
 class PhotoCommand:
 
@@ -18,17 +20,25 @@ class PhotoCommand:
         parser_1.set_defaults(func=self._add_basedir)
 
         parser_2 = sub_parsers.add_parser('scan_basedir',help='Scan a base directory for photos and add these to the database')
-        parser_2.add_argument("dir_id", help="Id of the base directory",type=int, default=1)
+        parser_2.add_argument("dir_id", help="Id of the base directory",type=int, default=1,const=1,nargs='?')
         parser_2.add_argument("-a","--all",help="Recalculate even if the fields is already filled in the database", action='store_true',default=False)
         parser_2.add_argument("-n","--no_chunks",help="Don't calculate the MD5 sum in chunks", action='store_true',default=False)
-
         parser_2.set_defaults(func=self._scan_basedir)
 
         parser_3 = sub_parsers.add_parser('get_duplicates',help='Make a list of all the photo\'s that are duplicate based on md5 sum')
-
         parser_3.set_defaults(func=self._get_duplicates)
         
+        parser_4 = sub_parsers.add_parser('show_photo',help='Show a photo from the database')
+        parser_4.add_argument("photo_id", help="Id of the photo",type=int, default=1)
+        parser_4.add_argument("-s","--skip_no_person",help="Skip photo's where no person is detected", action='store_true',default=False)
 
+        parser_4.set_defaults(func=self._show_photo)
+
+        parser_5 = sub_parsers.add_parser('process_photo',help='Run the given process against one or all photos')
+        parser_5.add_argument("process", help="Name of the process to run",type=str, default='Exists',choices=['FaceDetect','Exists'],const='Exists',nargs='?')
+        parser_5.add_argument("photo_id", help="Id of the photo",type=int, default=1,const=1,nargs='?')
+        parser_5.add_argument("-f","--force",help="Force rerun on photo's that are already processed", action='store_true',default=False)
+        parser_5.set_defaults(func=self._process_photo)
 
         self._args = self._parser.parse_args()
 
@@ -71,3 +81,48 @@ class PhotoCommand:
         print('Ready')
         PhotoProject.close_current_database()
         
+    def _show_photo(self):
+        PhotoProject.set_current_database(self._args.project)
+
+        photos = Photo.select().where(Photo.photo_id >= self._args.photo_id)
+        for photo in photos:
+            if self._args.skip_no_person and len(photo.persons) == 0:
+                continue
+            
+            image = cv2.imread(photo.full_path)
+            
+            for person in photo.persons:
+                cv2.rectangle(image,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),2)
+
+            image = resize_image(image,width=900)
+            #cv2.namedWindow('image window', cv2.WINDOW_NORMAL)
+            cv2.imshow('image window', image)
+            k = cv2.waitKey(0)
+            # 113 is the 'q' key
+            if k == -1 or k == 113:
+                break
+
+        cv2.destroyAllWindows()
+        PhotoProject.close_current_database()
+
+    def _process_photo(self):
+        if self._args.process == 'FaceDetect':
+            processing = FaceDetect()
+        elif self._args.process == 'Exists':
+            processing = ExistsProcessing()
+        else:
+            raise ValueError(f'Error: unexpected process {self._args.process}')
+
+        PhotoProject.set_current_database(self._args.project)
+
+        processing.init_database()
+        processing.update_status(Status.NEW,Status.TODO)
+        if self._args.force:
+            processing.update_status(Status.DONE,Status.TODO)
+            processing.update_status(Status.ERROR,Status.TODO)
+            processing.update_status(Status.PROCESSING,Status.TODO)
+
+        
+        processing.run()
+
+        PhotoProject.close_current_database()

@@ -28,7 +28,7 @@ class TestModel(unittest.TestCase):
 
         photo.set_md5_from_file()
 
-        photoperson = PhotoPerson.create(photo=photo,assigned_by = 'test program')
+        photoperson = PhotoPerson.create(photo=photo,assigned_by = 'test program',x=1,y=2,w=3,h=4)
 
         person = Person.create(name='Person one')
 

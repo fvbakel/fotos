@@ -1,6 +1,6 @@
 from peewee import *
 from playhouse.hybrid import hybrid_property
-from file_utils import get_hash_for_file,get_timestamp_exif
+from util_functions import get_hash_for_file,get_timestamp_exif
 import logging
 
 database = SqliteDatabase(None)
@@ -79,6 +79,10 @@ class Person(BaseModel):
 
 class PhotoPerson(BaseModel):
     id              = AutoField()
-    photo           = ForeignKeyField(Photo,backref=None)
+    photo           = ForeignKeyField(Photo,backref='persons')
     person          = ForeignKeyField(Person,backref=None,null=True)
     assigned_by     = CharField()
+    x               = IntegerField()
+    y               = IntegerField()
+    w               = IntegerField()
+    h               = IntegerField()
