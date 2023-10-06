@@ -102,8 +102,8 @@ class PhotoCommand:
             if k == -1 or k == 113:
                 break
 
-        cv2.destroyAllWindows()
         PhotoProject.close_current_database()
+        cv2.destroyAllWindows()
 
     def _process_photo(self):
         if self._args.process == 'FaceDetect':

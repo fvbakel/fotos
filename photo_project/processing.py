@@ -60,10 +60,12 @@ class PhotoProcessing:
                 self.do_process(photo_process)
                 photo_process.status = Status.DONE
                 photo_process.save()
+                database.commit()
             except Exception as err:
                 logging.error(f'Unable to process {self.name} on photo {photo_process.photo.full_path} {str(err)} ')
                 photo_process.status = Status.ERROR
                 photo_process.save()
+                database.commit()
         
 class ExistsProcessing(PhotoProcessing):
 
