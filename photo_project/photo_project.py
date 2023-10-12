@@ -111,4 +111,9 @@ class PhotoProject:
             .order_by(Photo.md5)
         )
         return duplicate_photos_query
+    
+    @classmethod
+    def get_random_photo(cls):
+        photo:Photo = Photo.select().order_by(fn.Random()).limit(1).get()
+        return photo
 

@@ -48,3 +48,17 @@ def resize_image(image, width=None, height=None, inter=cv2.INTER_AREA):
         dim = (width, int(h * r))
 
     return cv2.resize(image, dim, interpolation=inter)
+
+def resize_dimension(org_size,width=None, height=None):
+    (w, h) = org_size
+
+    if width is None and height is None:
+        return org_size
+    if width is None:
+        r = height / float(h)
+        dim = (int(w * r), height)
+    else:
+        r = width / float(w)
+        dim = (width, int(h * r))
+    
+    return dim

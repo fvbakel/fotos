@@ -2,17 +2,36 @@ from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
     QMessageBox,
+    QErrorMessage,
     QAction,
-    QFileDialog
+    QFileDialog,
+    QLabel,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QWidget,
+    QSizePolicy
 )
 
 from PyQt5.QtCore import (
-    QSettings    
+    QSettings
 )  
 
-from PyQt5.QtGui import QKeySequence
+from PyQt5.QtGui import (
+    QKeySequence,
+    QImage,
+    QPixmap,
+    
+)
 
-from photo_project import PhotoProject
+from photo_project import (
+    PhotoProject,
+    Photo
+)
+
+from util_functions import resize_image
+
+import cv2
 
 
 class PhotosMainWindow(QMainWindow):
@@ -21,6 +40,7 @@ class PhotosMainWindow(QMainWindow):
         super(QMainWindow, self).__init__(None)
         self._init_file_menu()
         self._init_help_menu()
+        self._init_photo_layout()
         
 
     def _init_file_menu(self):
@@ -40,6 +60,40 @@ class PhotosMainWindow(QMainWindow):
         self.exit_action.triggered.connect(self.exit)
         self.file_menu.addAction(self.exit_action)
 
+    def _init_photo_layout(self):
+        self.image_frame = QLabel()
+        self.info = QLabel()
+        self.info.setMaximumHeight(15)
+        self.prev_button = QPushButton('Previous')
+        self.prev_button.clicked.connect(self.show_previous_photo)
+        self.random_button = QPushButton('Random')
+        self.random_button.clicked.connect(self.show_random_photo)
+        self.next_button = QPushButton('Next')
+        self.next_button.clicked.connect(self.show_next_photo)
+
+        self.main_wid = QWidget(self)
+        self.setCentralWidget(self.main_wid)
+
+        self.main_layout = QHBoxLayout()
+        self.left_layout = QVBoxLayout()
+        self.right_layout = QVBoxLayout()
+        self.im_layout = QVBoxLayout()
+        self.navigation_layout = QHBoxLayout()
+
+        self.navigation_layout.addWidget(self.prev_button)
+        self.navigation_layout.addWidget(self.random_button)
+        self.navigation_layout.addWidget(self.next_button)
+        self.im_layout.addWidget(self.image_frame)
+        
+        self.left_layout.addWidget(self.info)
+        self.left_layout.addLayout(self.navigation_layout)
+        self.left_layout.addLayout(self.im_layout)
+        self.main_layout.addLayout(self.left_layout)
+        self.main_layout.addLayout(self.right_layout)
+
+        self.main_wid.setLayout(self.main_layout)
+
+
     def _init_help_menu(self):
         self.help_menu = self.menuBar().addMenu("&Help")
         self.about_action = QAction("&About")
@@ -53,7 +107,7 @@ class PhotosMainWindow(QMainWindow):
             PhotoProject.set_current_database(path)
             self.close_action.setEnabled(True)
             self.open_action.setEnabled(False)
-            
+            self.show_photo(1)
     
     def close_file(self):
         PhotoProject.close_current_database()
@@ -64,6 +118,44 @@ class PhotosMainWindow(QMainWindow):
         if self.close_action.isEnabled():
             self.close_file()
         self.close()
+    
+    def show_next_photo(self):
+        self.current_photo +=1
+        self.show_photo(self.current_photo)
+
+    def show_random_photo(self):
+        photo:Photo = PhotoProject.get_random_photo()
+        self.current_photo = photo.photo_id
+        self.show_photo(self.current_photo)
+
+    def show_previous_photo(self):
+        if self.current_photo  > 0:
+            self.current_photo -= 1
+            self.show_photo(self.current_photo)
+
+    def show_photo(self,photo_id:int = 1):
+        try:
+            photo:Photo = Photo.get_by_id(photo_id)
+            self.image_cv2 = cv2.imread(photo.full_path)
+            for person in photo.persons:
+                cv2.rectangle(self.image_cv2,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),4)
+            self.image_cv2_resized = resize_image(self.image_cv2,height=self.image_frame.size().height())
+            
+            self.image = QImage(
+                self.image_cv2_resized.data, 
+                self.image_cv2_resized.shape[1], 
+                self.image_cv2_resized.shape[0], 
+                self.image_cv2_resized.strides[0], 
+                QImage.Format_RGB888
+            ).rgbSwapped()
+            self.image_frame.setPixmap(QPixmap.fromImage(self.image))
+            #self.image_frame.setScaledContents( True )
+            self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
+            self.current_photo = photo_id
+            self.info.setText(f"Photo: {self.current_photo }: {photo.path}")
+        except Exception as err:
+            err_box = QErrorMessage()
+            err_box.showMessage(str(err))
         
     def show_about_dialog(self):
         text = "<center>" \
@@ -75,6 +167,8 @@ class PhotosMainWindow(QMainWindow):
             "Copyright &copy; F. van Bakel.</p>"
         QMessageBox.about(self, "About my app", text)
 
+    
+
 def start_app():
 
     app = QApplication([])
@@ -84,9 +178,8 @@ def start_app():
     settings = QSettings(app.organizationName(), app.applicationName())
 
     window = PhotosMainWindow()
-    window.show()
+    window.showMaximized()
     app.exec()
-    
 
 if __name__ == '__main__':
     start_app()
