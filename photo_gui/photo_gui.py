@@ -32,7 +32,7 @@ from photo_project import (
 from util_functions import resize_image
 
 import cv2
-
+import random
 
 class PhotosMainWindow(QMainWindow):
 
@@ -42,6 +42,8 @@ class PhotosMainWindow(QMainWindow):
         self._init_help_menu()
         self._init_photo_layout()
         self.current_photo:Photo = None
+        self.current_photos: list[Photo] = []
+        self.current_index:int = -1
         
 
     def _init_file_menu(self):
@@ -108,6 +110,7 @@ class PhotosMainWindow(QMainWindow):
             PhotoProject.set_current_database(path)
             self.close_action.setEnabled(True)
             self.open_action.setEnabled(False)
+            self.current_photos: list[Photo] = [ photo for photo in Photo.select().order_by(Photo.photo_id)]
             self.show_random_photo()
     
     def close_file(self):
@@ -121,24 +124,33 @@ class PhotosMainWindow(QMainWindow):
         self.close()
     
     def show_next_photo(self):
-        if self.current_photo is None:
+        if len(self.current_photos) == 0:
             return
-        self.set_current_photo(self.current_photo.photo_id +1)
+        self.set_current_photo_by_index(self.current_index + 1)
         self.show_photo()
 
     def show_random_photo(self):
-        self.current_photo = PhotoProject.get_random_photo()
+        if len(self.current_photos) == 0:
+            return
+        index = random.randint(0,len(self.current_photos))
+        self.set_current_photo_by_index(index)
         self.show_photo()
 
     def show_previous_photo(self):
-        if self.current_photo is None or self.current_photo.photo_id == 1:
+        if len(self.current_photos) == 0:
             return
-        
-        self.set_current_photo(self.current_photo.photo_id -1)
+        self.set_current_photo_by_index(self.current_index - 1)
         self.show_photo()
 
-    def set_current_photo(self,photo_id:int = 1):
+    def set_current_photo_by_index(self,index:int):
+        if index < 0 or index > (len(self.current_photos) -1):
+            return
+        self.current_index = index
+        self.current_photo = self.current_photos[self.current_index]
+
+    def set_current_photo_by_id(self,photo_id:int = 1):
         self.current_photo:Photo = Photo.get_by_id(photo_id)
+        self.current_index = -1
 
     def show_photo(self):
         try:
@@ -172,7 +184,6 @@ class PhotosMainWindow(QMainWindow):
             "Copyright &copy; F. van Bakel.</p>"
         QMessageBox.about(self, "About my app", text)
 
-    
 
 def start_app():
 
