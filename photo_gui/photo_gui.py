@@ -41,6 +41,7 @@ class PhotosMainWindow(QMainWindow):
         self._init_file_menu()
         self._init_help_menu()
         self._init_photo_layout()
+        self.current_photo:Photo = None
         
 
     def _init_file_menu(self):
@@ -107,7 +108,7 @@ class PhotosMainWindow(QMainWindow):
             PhotoProject.set_current_database(path)
             self.close_action.setEnabled(True)
             self.open_action.setEnabled(False)
-            self.show_photo(1)
+            self.show_random_photo()
     
     def close_file(self):
         PhotoProject.close_current_database()
@@ -120,24 +121,29 @@ class PhotosMainWindow(QMainWindow):
         self.close()
     
     def show_next_photo(self):
-        self.current_photo +=1
-        self.show_photo(self.current_photo)
+        if self.current_photo is None:
+            return
+        self.set_current_photo(self.current_photo.photo_id +1)
+        self.show_photo()
 
     def show_random_photo(self):
-        photo:Photo = PhotoProject.get_random_photo()
-        self.current_photo = photo.photo_id
-        self.show_photo(self.current_photo)
+        self.current_photo = PhotoProject.get_random_photo()
+        self.show_photo()
 
     def show_previous_photo(self):
-        if self.current_photo  > 0:
-            self.current_photo -= 1
-            self.show_photo(self.current_photo)
+        if self.current_photo is None or self.current_photo.photo_id == 1:
+            return
+        
+        self.set_current_photo(self.current_photo.photo_id -1)
+        self.show_photo()
 
-    def show_photo(self,photo_id:int = 1):
+    def set_current_photo(self,photo_id:int = 1):
+        self.current_photo:Photo = Photo.get_by_id(photo_id)
+
+    def show_photo(self):
         try:
-            photo:Photo = Photo.get_by_id(photo_id)
-            self.image_cv2 = cv2.imread(photo.full_path)
-            for person in photo.persons:
+            self.image_cv2 = cv2.imread(self.current_photo.full_path)
+            for person in self.current_photo.persons:
                 cv2.rectangle(self.image_cv2,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),4)
             self.image_cv2_resized = resize_image(self.image_cv2,height=self.image_frame.size().height())
             
@@ -151,8 +157,7 @@ class PhotosMainWindow(QMainWindow):
             self.image_frame.setPixmap(QPixmap.fromImage(self.image))
             #self.image_frame.setScaledContents( True )
             self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
-            self.current_photo = photo_id
-            self.info.setText(f"Photo: {self.current_photo }: {photo.path}")
+            self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
         except Exception as err:
             err_box = QErrorMessage()
             err_box.showMessage(str(err))
