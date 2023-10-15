@@ -10,7 +10,8 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QPushButton,
     QWidget,
-    QSizePolicy
+    QSizePolicy,
+    QActionGroup
 )
 
 from PyQt5.QtCore import (
@@ -20,7 +21,7 @@ from PyQt5.QtCore import (
 from PyQt5.QtGui import (
     QKeySequence,
     QImage,
-    QPixmap,
+    QPixmap
     
 )
 
@@ -39,6 +40,7 @@ class PhotosMainWindow(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__(None)
         self._init_file_menu()
+        self._init_query_menu()
         self._init_help_menu()
         self._init_photo_layout()
         self.current_photo:Photo = None
@@ -48,20 +50,44 @@ class PhotosMainWindow(QMainWindow):
 
     def _init_file_menu(self):
         self.file_menu = self.menuBar().addMenu("&File")
-        self.open_action = QAction("&Open")
 
+        self.open_action = QAction("&Open")
         self.open_action.triggered.connect(self.open_file)
         self.open_action.setShortcut(QKeySequence.StandardKey.Open)
-        self.file_menu.addAction(self.open_action)
 
         self.close_action = QAction("&Close File")
-        self.close_action.triggered.connect(self.close_file)
-        self.file_menu.addAction(self.close_action)
+        self.close_action.triggered.connect(self.close_file)       
         self.close_action.setEnabled(False)
 
         self.exit_action = QAction("&Exit")
         self.exit_action.triggered.connect(self.exit)
+
+        self.file_menu.addAction(self.open_action)
+        self.file_menu.addAction(self.close_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
+
+    def _init_query_menu(self):
+        self.query_menu = self.menuBar().addMenu("&Query")
+
+        self.query_group_act = QActionGroup(self.query_menu)
+        texts = ["All", "Persons", "Duplicates"]
+        functions = [self.query_all,self.query_persons,self.query_duplicates]
+        for text, function in zip(texts,functions):
+            action = QAction(text, self.query_menu, checkable=True, checked=text==texts[0])
+            self.query_menu.addAction(action)
+            action.query = function
+            self.query_group_act.addAction(action)
+        self.query_group_act.setExclusive(True)
+        self.query_group_act.triggered.connect(self.update_query)
+        self.query_group_act.setEnabled(False)
+
+    def _init_help_menu(self):
+        self.help_menu = self.menuBar().addMenu("&Help")
+        self.about_action = QAction("&About")
+        self.help_menu.addAction(self.about_action)
+
+        self.about_action.triggered.connect(self.show_about_dialog)
 
     def _init_photo_layout(self):
         self.image_frame = QLabel()
@@ -96,13 +122,21 @@ class PhotosMainWindow(QMainWindow):
 
         self.main_wid.setLayout(self.main_layout)
 
+    def update_query(self, action:QAction):
+        action.query()
+        self.show_first_photo()
 
-    def _init_help_menu(self):
-        self.help_menu = self.menuBar().addMenu("&Help")
-        self.about_action = QAction("&About")
-        self.help_menu.addAction(self.about_action)
+    def query_all(self):
+        self.current_photos: list[Photo] = [ photo for photo in Photo.select().order_by(Photo.photo_id)]
+        self.current_index = -1
 
-        self.about_action.triggered.connect(self.show_about_dialog)
+    def query_persons(self):
+        self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_persons()]
+        self.current_index = -1
+
+    def query_duplicates(self):
+        self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_duplicates_as_objects()]
+        self.current_index = -1
     
     def open_file(self):
         path = QFileDialog.getOpenFileName(self, "Open",filter='*.db')[0]
@@ -110,13 +144,16 @@ class PhotosMainWindow(QMainWindow):
             PhotoProject.set_current_database(path)
             self.close_action.setEnabled(True)
             self.open_action.setEnabled(False)
-            self.current_photos: list[Photo] = [ photo for photo in Photo.select().order_by(Photo.photo_id)]
+            self.query_group_act.setEnabled(True)
+            
+            self.query_all()
             self.show_random_photo()
     
     def close_file(self):
         PhotoProject.close_current_database()
         self.close_action.setEnabled(False)
         self.open_action.setEnabled(True)
+        self.query_group_act.setEnabled(False)
 
     def exit(self):
         if self.close_action.isEnabled():
@@ -127,6 +164,12 @@ class PhotosMainWindow(QMainWindow):
         if len(self.current_photos) == 0:
             return
         self.set_current_photo_by_index(self.current_index + 1)
+        self.show_photo()
+    
+    def show_first_photo(self):
+        if len(self.current_photos) == 0:
+            return
+        self.set_current_photo_by_index(0)
         self.show_photo()
 
     def show_random_photo(self):

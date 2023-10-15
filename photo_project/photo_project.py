@@ -113,6 +113,16 @@ class PhotoProject:
         return duplicate_photos_query
     
     @classmethod
+    def get_persons(cls):
+
+        photos_with_person_query = ( Photo
+            .select()
+            .join(PhotoPerson,on=(PhotoPerson.photo == Photo.photo_id))
+            .group_by(Photo.photo_id)
+        )
+        return photos_with_person_query
+    
+    @classmethod
     def get_random_photo(cls):
         photo:Photo = Photo.select().order_by(fn.Random()).limit(1).get()
         return photo
