@@ -3,3 +3,4 @@ tmp
 .vscode
 __pycache__
 photo_project.db
+*.yml
