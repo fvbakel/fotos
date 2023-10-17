@@ -256,6 +256,7 @@ class PhotosMainWindow(QMainWindow):
         
 
     def show_person_image(self):
+        self.person_name.setText('')
         if len(self.current_photo.persons) == 0:
             self.person_image_frame.clear()
             return
@@ -284,15 +285,9 @@ class PhotosMainWindow(QMainWindow):
         
         person:PhotoPerson = self.current_photo.persons[0]
 
-        delta_w = (out_w - person.w) // 2
-        delta_h = (out_h - person.h) // 2
-        x_out = person.x - delta_w
-        y_out = person.y - delta_h 
-        if x_out < 0:
-            x_out = 0
-        if y_out < 0:
-            y_out = 0    
-        return self.image_cv2[y_out:y_out+out_h, x_out:x_out+out_w].copy()
+        person_img = resize_image(self.image_cv2[person.y:person.y + person.h, person.x:person.x + person.w],width=200)
+
+        return person_img
 
     def show_about_dialog(self):
         text = "<center>" \
@@ -311,7 +306,7 @@ def start_app():
     app.setApplicationName("fotos")
     app.setOrganizationName("fvbakel")
     app.setApplicationDisplayName("Foto's");
-    settings = QSettings(app.organizationName(), app.applicationName())
+    #settings = QSettings(app.organizationName(), app.applicationName())
 
     window = PhotosMainWindow()
     window.showMaximized()
