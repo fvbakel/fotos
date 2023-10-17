@@ -113,9 +113,10 @@ class PhotosMainWindow(QMainWindow):
         self.person_assigned_by.setFixedWidth(200)
 
         person_predicted_label = QLabel('Predicted person:') 
-        person_predicted_label.setFixedWidth(200)
         self.person_predicted = QLabel('')
-        self.person_predicted.setFixedWidth(200)
+        
+        person_confidence_label = QLabel('Confidence prediction:') 
+        self.person_confidence = QLabel('')
 
         self.person_name.setFixedWidth(200)
         self.person_name.setMaxLength(255)
@@ -130,10 +131,13 @@ class PhotosMainWindow(QMainWindow):
         self.right_layout.addWidget(self.person_list,4,0)
         self.right_layout.addWidget(self.person_name,5,0 )
         self.right_layout.addWidget(self.save_button,6,0 )
-        #self.right_layout.addWidget(self.predict_button,7,0 )
-        self.right_layout.addWidget(person_predicted_label,8,0 )
-        self.right_layout.addWidget(self.person_predicted,9,0 )
         
+        self.right_layout.addWidget(person_predicted_label,7,0 )
+        self.right_layout.addWidget(self.person_predicted,8,0 )
+
+        self.right_layout.addWidget(person_confidence_label,9,0 )
+        self.right_layout.addWidget(self.person_confidence,10,0 )
+               
 
         self.navigation_layout.addWidget(self.prev_button)
         self.navigation_layout.addWidget(self.random_button)
@@ -170,11 +174,13 @@ class PhotosMainWindow(QMainWindow):
     def predict_person(self):
         if len(self.current_photo.persons) == 0:
             self.person_predicted.setText('')
+            self.person_confidence.setText('')
             return
         photo_person:PhotoPerson = self.current_photo.persons[0]
         
         person, confidence = self.recognizer.predict(photo_person)
         self.person_predicted.setText(person.name)
+        self.person_confidence.setText(f'{100 - confidence:0.3f} %')
 
     def save_person(self):
         if len(self.current_photo.persons) == 0:
