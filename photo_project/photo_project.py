@@ -16,14 +16,34 @@ TODO: refactor to singleton
 class PhotoProject:
 
     allowed_extensions = ('jpg','jpeg')
+    current_db_file = None
 
     @classmethod
     def set_current_database(cls,db_file:str):
         set_current_database(db_file)
+        cls.current_db_file = db_file
 
     @classmethod
     def close_current_database(cls):
         close_current_database()
+        cls.current_db_file = None
+
+    @classmethod
+    def get_db_dir(cls):
+        if cls.current_db_file is None:
+            return None
+        return pathlib.Path(cls.current_db_file).parent
+        
+    @classmethod
+    def get_face_recognize_model(cls):
+        if cls.current_db_file is None:
+            return None
+        db_path = pathlib.Path(cls.current_db_file)
+        db_path_str = str(db_path)
+        if not db_path_str.endswith('.db'):
+            return db_path_str + '_face_recognize.yml'
+        return db_path_str.replace('.db','_face_recognize.yml')
+
 
     @classmethod
     def basic_load_basedir(cls,base_dir:BaseDir):

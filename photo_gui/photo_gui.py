@@ -6,7 +6,8 @@ from photo_project import (
     PhotoProject,
     Photo,
     PhotoPerson,
-    Person
+    Person,
+    PersonRecognizer
 )
 
 from util_functions import resize_image
@@ -19,6 +20,7 @@ class PhotosMainWindow(QMainWindow):
     def __init__(self):
         super(QMainWindow, self).__init__(None)
         self._init_file_menu()
+        self._init_edit_menu()
         self._init_query_menu()
         self._init_help_menu()
         self._init_photo_layout()
@@ -45,6 +47,13 @@ class PhotosMainWindow(QMainWindow):
         self.file_menu.addAction(self.close_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
+    
+    def _init_edit_menu(self):
+        self.edit_menu = self.menuBar().addMenu("&Edit")
+        self.train_action = QAction("&Run Training face model")
+        self.train_action.triggered.connect(self.train_face_model)
+
+        self.edit_menu.addAction(self.train_action)
 
     def _init_query_menu(self):
         self.query_menu = self.menuBar().addMenu("&Query")
@@ -102,11 +111,17 @@ class PhotosMainWindow(QMainWindow):
         person_name_label.setFixedWidth(200)
         person_assigned_by_label.setFixedWidth(200)
         self.person_assigned_by.setFixedWidth(200)
+
+        person_predicted_label = QLabel('Predicted person:') 
+        person_predicted_label.setFixedWidth(200)
+        self.person_predicted = QLabel('')
+        self.person_predicted.setFixedWidth(200)
+
         self.person_name.setFixedWidth(200)
         self.person_name.setMaxLength(255)
         self.save_button = QPushButton('Save')
         self.save_button.clicked.connect(self.save_person)
-
+  
         self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.right_layout.addWidget(person_assigned_by_label,0,0)
         self.right_layout.addWidget(self.person_assigned_by,1,0)
@@ -115,6 +130,10 @@ class PhotosMainWindow(QMainWindow):
         self.right_layout.addWidget(self.person_list,4,0)
         self.right_layout.addWidget(self.person_name,5,0 )
         self.right_layout.addWidget(self.save_button,6,0 )
+        #self.right_layout.addWidget(self.predict_button,7,0 )
+        self.right_layout.addWidget(person_predicted_label,8,0 )
+        self.right_layout.addWidget(self.person_predicted,9,0 )
+        
 
         self.navigation_layout.addWidget(self.prev_button)
         self.navigation_layout.addWidget(self.random_button)
@@ -145,6 +164,18 @@ class PhotosMainWindow(QMainWindow):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_duplicates_as_objects()]
         self.current_index = -1
     
+    def train_face_model(self):
+        self.recognizer.run_training_all()
+
+    def predict_person(self):
+        if len(self.current_photo.persons) == 0:
+            self.person_predicted.setText('')
+            return
+        photo_person:PhotoPerson = self.current_photo.persons[0]
+        
+        person, confidence = self.recognizer.predict(photo_person)
+        self.person_predicted.setText(person.name)
+
     def save_person(self):
         if len(self.current_photo.persons) == 0:
             return
@@ -179,6 +210,8 @@ class PhotosMainWindow(QMainWindow):
 
             for person in Person.select():
                 self.person_list.addItem(person.name)
+            
+            self.recognizer = PersonRecognizer(model_file=PhotoProject.get_face_recognize_model())
             self.query_all()
             self.show_random_photo()
             
@@ -236,6 +269,7 @@ class PhotosMainWindow(QMainWindow):
                 cv2.rectangle(self.image_cv2,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),4)
 
             self.show_person_image()
+            self.predict_person()
 
             self.image_cv2_resized = resize_image(self.image_cv2,height=self.image_frame.size().height())
             
