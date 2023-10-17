@@ -1,33 +1,12 @@
-from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QMessageBox,
-    QErrorMessage,
-    QAction,
-    QFileDialog,
-    QLabel,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QWidget,
-    QSizePolicy,
-    QActionGroup
-)
-
-from PyQt5.QtCore import (
-    QSettings
-)  
-
-from PyQt5.QtGui import (
-    QKeySequence,
-    QImage,
-    QPixmap
-    
-)
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 from photo_project import (
     PhotoProject,
-    Photo
+    Photo,
+    PhotoPerson,
+    Person
 )
 
 from util_functions import resize_image
@@ -105,9 +84,37 @@ class PhotosMainWindow(QMainWindow):
 
         self.main_layout = QHBoxLayout()
         self.left_layout = QVBoxLayout()
-        self.right_layout = QVBoxLayout()
+        self.right_layout = QGridLayout()
         self.im_layout = QVBoxLayout()
         self.navigation_layout = QHBoxLayout()
+        
+        self.person_image_frame = QLabel()
+        self.person_image_frame.setFixedWidth(200)
+        self.person_image_frame.setFixedHeight(200)
+
+        person_name_label = QLabel('Person name:') 
+        person_assigned_by_label = QLabel('Assigned by:') 
+        self.person_assigned_by = QLabel('') 
+        self.person_list = QComboBox()
+        self.person_list.addItems(['Unkown','Not a person','New person'])
+ 
+        self.person_name = QLineEdit()
+        person_name_label.setFixedWidth(200)
+        person_assigned_by_label.setFixedWidth(200)
+        self.person_assigned_by.setFixedWidth(200)
+        self.person_name.setFixedWidth(200)
+        self.person_name.setMaxLength(255)
+        self.save_button = QPushButton('Save')
+        self.save_button.clicked.connect(self.save_person)
+
+        self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.right_layout.addWidget(person_assigned_by_label,0,0)
+        self.right_layout.addWidget(self.person_assigned_by,1,0)
+        self.right_layout.addWidget(self.person_image_frame,2,0)
+        self.right_layout.addWidget(person_name_label,3,0)
+        self.right_layout.addWidget(self.person_list,4,0)
+        self.right_layout.addWidget(self.person_name,5,0 )
+        self.right_layout.addWidget(self.save_button,6,0 )
 
         self.navigation_layout.addWidget(self.prev_button)
         self.navigation_layout.addWidget(self.random_button)
@@ -138,6 +145,30 @@ class PhotosMainWindow(QMainWindow):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_duplicates_as_objects()]
         self.current_index = -1
     
+    def save_person(self):
+        if len(self.current_photo.persons) == 0:
+            return
+        
+        photo_person:PhotoPerson = self.current_photo.persons[0]
+        person_name = self.person_list.currentText()
+        if person_name == 'Unknown':
+            return
+        if person_name == 'Not a person':
+            return
+        if person_name == 'New person':
+            person_name = self.person_name.text().strip()
+            if len(person_name) == 0:
+                return
+        person, created = Person.get_or_create(name=person_name)
+        if created:
+            print(f'Created person: {person_name}')
+            self.person_list.addItem(person_name)
+        photo_person.person = person
+        photo_person.assigned_by = 'manual'
+        photo_person.save()
+
+        self.person_assigned_by.setText(photo_person.assigned_by)
+
     def open_file(self):
         path = QFileDialog.getOpenFileName(self, "Open",filter='*.db')[0]
         if path:
@@ -145,9 +176,12 @@ class PhotosMainWindow(QMainWindow):
             self.close_action.setEnabled(True)
             self.open_action.setEnabled(False)
             self.query_group_act.setEnabled(True)
-            
+
+            for person in Person.select():
+                self.person_list.addItem(person.name)
             self.query_all()
             self.show_random_photo()
+            
     
     def close_file(self):
         PhotoProject.close_current_database()
@@ -200,6 +234,9 @@ class PhotosMainWindow(QMainWindow):
             self.image_cv2 = cv2.imread(self.current_photo.full_path)
             for person in self.current_photo.persons:
                 cv2.rectangle(self.image_cv2,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),4)
+
+            self.show_person_image()
+
             self.image_cv2_resized = resize_image(self.image_cv2,height=self.image_frame.size().height())
             
             self.image = QImage(
@@ -217,6 +254,46 @@ class PhotosMainWindow(QMainWindow):
             err_box = QErrorMessage()
             err_box.showMessage(str(err))
         
+
+    def show_person_image(self):
+        if len(self.current_photo.persons) == 0:
+            self.person_image_frame.clear()
+            return
+        self.person_image_cv2 = self.get_person_image(200,200)
+        self.person_image = QImage(
+            self.person_image_cv2.data, 
+            self.person_image_cv2.shape[1], 
+            self.person_image_cv2.shape[0], 
+            self.person_image_cv2.strides[0], 
+            QImage.Format_RGB888
+        ).rgbSwapped()
+        self.person_image_frame.setPixmap(QPixmap.fromImage(self.person_image))
+
+        self.person_assigned_by.setText(self.current_photo.persons[0].assigned_by)
+        person:Person = self.current_photo.persons[0].person
+        if person is not None:
+            name = person.name
+        else:
+            name = 'Unkown'
+        index = self.person_list.findText(name)
+        self.person_list.setCurrentIndex(index)
+
+    def get_person_image(self,out_w,out_h):
+        if len(self.current_photo.persons) == 0:
+            return None
+        
+        person:PhotoPerson = self.current_photo.persons[0]
+
+        delta_w = (out_w - person.w) // 2
+        delta_h = (out_h - person.h) // 2
+        x_out = person.x - delta_w
+        y_out = person.y - delta_h 
+        if x_out < 0:
+            x_out = 0
+        if y_out < 0:
+            y_out = 0    
+        return self.image_cv2[y_out:y_out+out_h, x_out:x_out+out_w].copy()
+
     def show_about_dialog(self):
         text = "<center>" \
             "<h1>Foto's</h1>" \
