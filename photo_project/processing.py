@@ -127,3 +127,6 @@ class FaceDetect(PhotoProcessing):
         for x,y,w,h in rects:
             # todo check for overlap with existing in database
             PhotoPerson.create(photo=photo_process.photo,assigned_by=self.name,x=x,y=y,w=w,h=h)
+
+
+    
