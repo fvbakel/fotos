@@ -26,18 +26,20 @@ class PersonRecognizer:
         else:
             raise ValueError(f'Unexpected recognizer_type: {recognizer_type}' )
         self.normalized_width = 300
-        
+        self.is_loaded = False
         self.reload_model()
 
     def reload_model(self):
         if pathlib.Path(self._model_file).is_file():
             self.recognizer.read(self._model_file)
+            self.is_loaded = True
 
     def run_training_all(self):
         ids,faces = self. _read_all_train_data()
         if len(ids > 0):
             self.recognizer.train(faces,ids)
             self.recognizer.save(self._model_file)
+            self.is_loaded = True
         else:
             logging.warning('No training data set')
 
@@ -93,6 +95,12 @@ class PersonRecognizerCombined:
     def run_training_all(self):
         for recognizer in self.recognizers:
             recognizer.run_training_all()
+
+    def is_trained(self):
+        for recognizer in self.recognizers:
+            if not recognizer.is_loaded:
+                return False
+        return True
 
     def predict(self,photo_person:PhotoPerson,image_cv2_input = None):
         predictions = dict()

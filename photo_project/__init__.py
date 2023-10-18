@@ -17,7 +17,8 @@ from photo_project.processing import (
     PhotoProcessing,
     Status,
     ExistsProcessing,
-    FaceDetect
+    FaceDetect,
+    PersonRecognize
 )
 from photo_project.person_recognize import (
     PersonRecognizer,

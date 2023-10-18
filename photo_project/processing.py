@@ -1,5 +1,6 @@
 from photo_project.model import *
 from photo_project.measure import MeasureProgress,MeasureDuration
+from photo_project.person_recognize import PersonRecognizerCombined
 from util_functions import find_overlap
 import pathlib
 from datetime import timedelta,datetime
@@ -120,7 +121,6 @@ class FaceDetect(PhotoProcessing):
         return self.faces
 
     def do_process(self,photo_process:PhotoProcess):
-        #image = cv2.imread(photo_process,cv2.IMREAD_GRAYSCALE)
         image = cv2.imread(photo_process.photo.full_path)
         self.set_image(image)
         rects = self.get_faces_rectangles()
@@ -129,4 +129,25 @@ class FaceDetect(PhotoProcessing):
             PhotoPerson.create(photo=photo_process.photo,assigned_by=self.name,x=x,y=y,w=w,h=h)
 
 
-    
+class PersonRecognize(PhotoProcessing):
+
+    def __init__(self):
+        self.recognizer = PersonRecognizerCombined()
+        self.threshold = 100
+        self.recognizer.run_training_all()
+
+    def do_process(self,photo_process:PhotoProcess):
+        
+        query = (
+            PhotoPerson
+            .select()
+            .join(Photo,on=( Photo.photo_id == PhotoPerson.photo_id))
+            .where(PhotoPerson.assigned_by != 'manual' and  PhotoPerson.photo_id == photo_process.photo_id and PhotoPerson.person_id.is_null(True))
+        )
+
+        for photo_person in query:
+            person, confidence = self.recognizer.predict(photo_person)
+            if confidence == 100:
+                photo_person.person = person
+                photo_person.assigned_by = self.name
+                photo_person.save()

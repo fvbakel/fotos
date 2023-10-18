@@ -35,7 +35,7 @@ class PhotoCommand:
         parser_4.set_defaults(func=self._show_photo)
 
         parser_5 = sub_parsers.add_parser('process_photo',help='Run the given process against one or all photos')
-        parser_5.add_argument("process", help="Name of the process to run",type=str, default='Exists',choices=['FaceDetect','Exists'],const='Exists',nargs='?')
+        parser_5.add_argument("process", help="Name of the process to run",type=str, default='Exists',choices=['FaceDetect','Exists','PersonRecognize'],const='Exists',nargs='?')
         parser_5.add_argument("photo_id", help="Id of the photo",type=int, default=1,const=1,nargs='?')
         parser_5.add_argument("-f","--force",help="Force rerun on photo's that are already processed", action='store_true',default=False)
         parser_5.set_defaults(func=self._process_photo)
@@ -106,14 +106,16 @@ class PhotoCommand:
         cv2.destroyAllWindows()
 
     def _process_photo(self):
+        PhotoProject.set_current_database(self._args.project)
+
         if self._args.process == 'FaceDetect':
             processing = FaceDetect()
         elif self._args.process == 'Exists':
             processing = ExistsProcessing()
+        elif self._args.process == 'PersonRecognize':
+            processing = PersonRecognize()
         else:
             raise ValueError(f'Error: unexpected process {self._args.process}')
-
-        PhotoProject.set_current_database(self._args.project)
 
         processing.init_database()
         processing.update_status(Status.NEW,Status.TODO)

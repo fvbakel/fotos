@@ -294,7 +294,9 @@ class PhotosMainWindow(QMainWindow):
             self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
         except Exception as err:
             err_box = QMessageBox()
-            err_box.showMessage(str(err))
+            err_box.setIcon(QMessageBox.Warning)
+            err_box.setText(str(err))
+            err_box.show()
         
 
     def show_person_image(self):
