@@ -22,8 +22,8 @@ class TestPersonRecognize(unittest.TestCase):
         processing.update_status(Status.NEW,Status.TODO)
         processing.run()
 
-        model_file = PhotoProject.get_face_recognize_model()
-        recognizer = PersonRecognizer(model_file=model_file)
+        
+        recognizer = PersonRecognizer()
 
         # training with no persons should not fail
         recognizer.run_training_all()

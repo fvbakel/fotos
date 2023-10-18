@@ -20,5 +20,6 @@ from photo_project.processing import (
     FaceDetect
 )
 from photo_project.person_recognize import (
-    PersonRecognizer
+    PersonRecognizer,
+    PersonRecognizerCombined
 )

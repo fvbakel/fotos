@@ -35,14 +35,15 @@ class PhotoProject:
         return pathlib.Path(cls.current_db_file).parent
         
     @classmethod
-    def get_face_recognize_model(cls):
+    def get_face_recognize_model(cls,recognizer_type:str):
         if cls.current_db_file is None:
             return None
+        suffix = f'_face_{recognizer_type}.yml'
         db_path = pathlib.Path(cls.current_db_file)
         db_path_str = str(db_path)
         if not db_path_str.endswith('.db'):
-            return db_path_str + '_face_recognize.yml'
-        return db_path_str.replace('.db','_face_recognize.yml')
+            return db_path_str + suffix
+        return db_path_str.replace('.db',suffix)
 
 
     @classmethod

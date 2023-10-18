@@ -1,4 +1,5 @@
 from photo_project.model import *
+from photo_project.photo_project import PhotoProject
 from photo_project.measure import MeasureProgress,MeasureDuration
 from util_functions import find_overlap
 import pathlib
@@ -10,37 +11,35 @@ from util_functions import resize_image
 
 class PersonRecognizer:
 
-    def __init__(self,model_file:str):
-        self.model_file = model_file
-        self.recognizer = cv2.face.LBPHFaceRecognizer_create()
-        self.normalized_width = 200
-
-        self.id_vs_name = dict()
-        self.name_vs_id = dict()
+    def __init__(self,recognizer_type:str='LBPH'):
+        self._model_file = PhotoProject.get_face_recognize_model(recognizer_type=recognizer_type)
+        self._recognizer_type = recognizer_type
+        self._max_distance = 100
+        if recognizer_type == 'LBPH':
+            self.recognizer = cv2.face.LBPHFaceRecognizer_create()
+        elif recognizer_type == 'Eigen':
+            self.recognizer = cv2.face.EigenFaceRecognizer_create()
+            self._max_distance = 2000
+        elif recognizer_type == 'Fisher':
+            self.recognizer = cv2.face.FisherFaceRecognizer_create()
+            self._max_distance = 2000
+        else:
+            raise ValueError(f'Unexpected recognizer_type: {recognizer_type}' )
+        self.normalized_width = 300
         
         self.reload_model()
 
     def reload_model(self):
-        if pathlib.Path(self.model_file).is_file():
-            self.recognizer.read(self.model_file)
-            #self._read_labels()
+        if pathlib.Path(self._model_file).is_file():
+            self.recognizer.read(self._model_file)
 
     def run_training_all(self):
         ids,faces = self. _read_all_train_data()
         if len(ids > 0):
             self.recognizer.train(faces,ids)
-            self.recognizer.save(self.model_file)
+            self.recognizer.save(self._model_file)
         else:
             logging.warning('No training data set')
-
-    """
-    def _read_labels(self):
-        self.id_vs_name = dict()
-        self.name_vs_id = dict()
-        for person in Person.select():
-            self.id_vs_name[person.person_id] = person.name
-            self.name_vs_id[person.name] = person.person_id
-    """
 
     def _read_all_train_data(self):
         query = (
@@ -72,7 +71,57 @@ class PersonRecognizer:
 
     def predict(self,photo_person:PhotoPerson,image_cv2_input = None):
         faceNP = self.get_person_normalized_image(photo_person,image_cv2_input = image_cv2_input)
-        id, confidence = self.recognizer.predict(faceNP)
+        id, distance = self.recognizer.predict(faceNP)
+        if distance > self._max_distance:
+            distance = self._max_distance
+
+        confidence = ((self._max_distance - distance)/self._max_distance) * 100
         person = Person.get_by_id(id)
         return person, confidence
 
+class PersonRecognizerCombined:
+
+    def __init__(self,recognizer_types:list[str]=['LBPH','Eigen','Fisher']):
+        if len(recognizer_types) == 0:
+            raise ValueError(f'Need at least one recognizer type')
+        self._recognizer_types = recognizer_types
+        self.recognizers:list[PersonRecognizer] = []
+
+        for recognizer_type in self._recognizer_types:
+            self.recognizers.append(PersonRecognizer(recognizer_type=recognizer_type))
+        
+    def run_training_all(self):
+        for recognizer in self.recognizers:
+            recognizer.run_training_all()
+
+    def predict(self,photo_person:PhotoPerson,image_cv2_input = None):
+        predictions = dict()
+        for recognizer in self.recognizers:
+            person, confidence = recognizer.predict(photo_person,image_cv2_input)
+            if person not in predictions:
+                predictions[person] = []
+            predictions[person].append(confidence)
+
+        if len(predictions) == 0:
+            raise ProgrammingError('Should get some predictions')
+        
+        max_person:Person = None
+        max_agree = 0
+        max_confidence = 0
+        for person,confidences in predictions.items():
+            if len(confidences) > max_agree:
+                max_agree = len(confidences)
+                max_person = person
+            if max_agree == 1 and max(confidences) < max_confidence:
+                max_person = person
+                max_confidence = max(confidences)
+                
+
+        if max_agree == len(self.recognizers):
+            confidence = 100
+        elif max_agree > 1:
+            confidence = max(predictions[max_person])
+        else:
+            confidence = 0
+
+        return max_person, confidence

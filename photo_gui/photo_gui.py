@@ -7,7 +7,8 @@ from photo_project import (
     Photo,
     PhotoPerson,
     Person,
-    PersonRecognizer
+    PersonRecognizer,
+    PersonRecognizerCombined
 )
 
 from util_functions import resize_image
@@ -180,7 +181,7 @@ class PhotosMainWindow(QMainWindow):
         
         person, confidence = self.recognizer.predict(photo_person)
         self.person_predicted.setText(person.name)
-        self.person_confidence.setText(f'{100 - confidence:0.3f} %')
+        self.person_confidence.setText(f'{confidence:0.3f} %')
 
     def save_person(self):
         if len(self.current_photo.persons) == 0:
@@ -217,7 +218,8 @@ class PhotosMainWindow(QMainWindow):
             for person in Person.select():
                 self.person_list.addItem(person.name)
             
-            self.recognizer = PersonRecognizer(model_file=PhotoProject.get_face_recognize_model())
+            #self.recognizer = PersonRecognizer(recognizer_type='Fisher')
+            self.recognizer = PersonRecognizerCombined()
             self.query_all()
             self.show_random_photo()
             
@@ -291,7 +293,7 @@ class PhotosMainWindow(QMainWindow):
             self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
             self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
         except Exception as err:
-            err_box = QErrorMessage()
+            err_box = QMessageBox()
             err_box.showMessage(str(err))
         
 
