@@ -223,8 +223,8 @@ class PhotosMainWindow(QMainWindow):
             for person in Person.select():
                 self.person_list.addItem(person.name)
             
-            self.recognizer = PersonRecognizer(recognizer_type='LBPH')
-            #self.recognizer = PersonRecognizerCombined(recognizer_types=['LBPH','Fisher'])
+            #self.recognizer = PersonRecognizer(recognizer_type='LBPH')
+            self.recognizer = PersonRecognizerCombined()
             self.query_all()
             self.show_random_photo()
             

@@ -132,10 +132,13 @@ class FaceDetect(PhotoProcessing):
 class PersonRecognize(PhotoProcessing):
 
     def __init__(self):
-        self.recognizer = PersonRecognizer()
+        #self.recognizer = PersonRecognizer()
+        self.recognizer = PersonRecognizerCombined()
         self.threshold = 90
-        if not self.recognizer.is_loaded:
+        if not self.recognizer.is_trained():
+            print('Running training first')
             self.recognizer.run_training_all()
+            print('Running training ready')
 
     def do_process(self,photo_process:PhotoProcess):
         

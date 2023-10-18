@@ -49,7 +49,7 @@ class PersonRecognizer:
             .select()
             .join(Photo,on=( Photo.photo_id == PhotoPerson.photo_id))
             .join(Person,on=( Person.person_id == PhotoPerson.person_id))
-            .where(PhotoPerson.assigned_by == 'manual')
+            .where((PhotoPerson.assigned_by == 'manual') & (Person.name != 'Unknown'))
         )
         faces = []
         ids = []
