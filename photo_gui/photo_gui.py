@@ -61,8 +61,8 @@ class PhotosMainWindow(QMainWindow):
         self.query_menu = self.menuBar().addMenu("&Query")
 
         self.query_group_act = QActionGroup(self.query_menu)
-        texts = ["All", "Persons", "Duplicates"]
-        functions = [self.query_all,self.query_persons,self.query_duplicates]
+        texts = ["All", "Persons", "Recognized Persons","Duplicates"]
+        functions = [self.query_all,self.query_persons,self.query_recognized,self.query_duplicates]
         for text, function in zip(texts,functions):
             action = QAction(text, self.query_menu, checkable=True, checked=text==texts[0])
             self.query_menu.addAction(action)
@@ -168,6 +168,10 @@ class PhotosMainWindow(QMainWindow):
 
     def query_duplicates(self):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_duplicates_as_objects()]
+        self.current_index = -1
+    
+    def query_recognized(self):
+        self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_recognized()]
         self.current_index = -1
     
     def train_face_model(self):
@@ -297,10 +301,10 @@ class PhotosMainWindow(QMainWindow):
             logging.error(err)
             err_box = QMessageBox()
             err_box.setIcon(QMessageBox.Warning)
-            err_box.setText(str(err))
-            err_box.show()
-            
-        
+            err_box.setText('A error occurred in photo display')
+            err_box.setDetailedText(str(err))
+            err_box.setStandardButtons(QMessageBox.Ok)
+            err_box.exec_()
 
     def show_person_image(self):
         self.person_name.setText('')

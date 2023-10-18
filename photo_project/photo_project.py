@@ -144,6 +144,16 @@ class PhotoProject:
         return photos_with_person_query
     
     @classmethod
+    def get_recognized(cls):
+        photos_with_recognized_person_query = ( Photo
+            .select()
+            .join(PhotoPerson,on=(PhotoPerson.photo == Photo.photo_id))
+            .group_by(Photo.photo_id)
+            .where( (PhotoPerson.assigned_by == 'PersonRecognize') )
+        )
+        return photos_with_recognized_person_query
+
+    @classmethod
     def get_random_photo(cls):
         photo:Photo = Photo.select().order_by(fn.Random()).limit(1).get()
         return photo
