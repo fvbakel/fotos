@@ -15,6 +15,7 @@ from util_functions import resize_image
 
 import cv2
 import random
+import logging
 
 class PhotosMainWindow(QMainWindow):
 
@@ -293,10 +294,12 @@ class PhotosMainWindow(QMainWindow):
             self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
             self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
         except Exception as err:
+            logging.error(err)
             err_box = QMessageBox()
             err_box.setIcon(QMessageBox.Warning)
             err_box.setText(str(err))
             err_box.show()
+            
         
 
     def show_person_image(self):

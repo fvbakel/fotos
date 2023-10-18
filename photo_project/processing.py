@@ -143,9 +143,9 @@ class PersonRecognize(PhotoProcessing):
             PhotoPerson
             .select()
             .join(Photo,on=( Photo.photo_id == PhotoPerson.photo_id))
-            .where(PhotoPerson.assigned_by != 'manual' and  PhotoPerson.photo_id == photo_process.photo_id and PhotoPerson.person_id.is_null(True))
+            .where( (PhotoPerson.assigned_by != 'manual') &  (PhotoPerson.photo_id == photo_process.photo_id) ) # & (PhotoPerson.person_id.is_null(True))
         )
-
+        
         for photo_person in query:
             person, confidence = self.recognizer.predict(photo_person)
             if confidence > self.threshold:
