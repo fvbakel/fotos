@@ -90,6 +90,12 @@ class PhotosMainWindow(QMainWindow):
         self.next_button = QPushButton('Next')
         self.next_button.clicked.connect(self.show_next_photo)
 
+        self.first_button = QPushButton('First')
+        self.first_button.clicked.connect(self.show_first_photo)
+        self.last_button = QPushButton('Last')
+        self.last_button.clicked.connect(self.show_last_photo)
+
+
         self.main_wid = QWidget(self)
         self.setCentralWidget(self.main_wid)
 
@@ -139,11 +145,13 @@ class PhotosMainWindow(QMainWindow):
 
         self.right_layout.addWidget(person_confidence_label,9,0 )
         self.right_layout.addWidget(self.person_confidence,10,0 )
-               
 
+        self.navigation_layout.addWidget(self.first_button)
         self.navigation_layout.addWidget(self.prev_button)
         self.navigation_layout.addWidget(self.random_button)
         self.navigation_layout.addWidget(self.next_button)
+        self.navigation_layout.addWidget(self.last_button)
+
         self.im_layout.addWidget(self.image_frame)
         
         self.left_layout.addWidget(self.info)
@@ -250,6 +258,12 @@ class PhotosMainWindow(QMainWindow):
         if len(self.current_photos) == 0:
             return
         self.set_current_photo_by_index(0)
+        self.show_photo()
+    
+    def show_last_photo(self):
+        if len(self.current_photos) == 0:
+            return
+        self.set_current_photo_by_index(len(self.current_photos) -1)
         self.show_photo()
 
     def show_random_photo(self):
