@@ -1,6 +1,6 @@
 from photo_project.model import *
 from photo_project.measure import MeasureProgress,MeasureDuration
-from photo_project.person_recognize import PersonRecognizerCombined
+from photo_project.person_recognize import PersonRecognizerCombined,PersonRecognizer
 from util_functions import find_overlap
 import pathlib
 from datetime import timedelta,datetime
@@ -132,9 +132,10 @@ class FaceDetect(PhotoProcessing):
 class PersonRecognize(PhotoProcessing):
 
     def __init__(self):
-        self.recognizer = PersonRecognizerCombined()
-        self.threshold = 100
-        self.recognizer.run_training_all()
+        self.recognizer = PersonRecognizer()
+        self.threshold = 90
+        if not self.recognizer.is_loaded:
+            self.recognizer.run_training_all()
 
     def do_process(self,photo_process:PhotoProcess):
         
@@ -147,7 +148,7 @@ class PersonRecognize(PhotoProcessing):
 
         for photo_person in query:
             person, confidence = self.recognizer.predict(photo_person)
-            if confidence == 100:
+            if confidence > self.threshold:
                 photo_person.person = person
                 photo_person.assigned_by = self.name
                 photo_person.save()
