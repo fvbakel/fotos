@@ -35,7 +35,7 @@ class PersonRecognizer:
             self.is_loaded = True
 
     def run_training_all(self):
-        ids,faces = self. _read_all_train_data()
+        ids,faces = self._read_all_train_data()
         if len(ids > 0):
             self.recognizer.train(faces,ids)
             self.recognizer.save(self._model_file)
@@ -49,7 +49,7 @@ class PersonRecognizer:
             .select()
             .join(Photo,on=( Photo.photo_id == PhotoPerson.photo_id))
             .join(Person,on=( Person.person_id == PhotoPerson.person_id))
-            .where((PhotoPerson.assigned_by == 'manual') & (Person.name != 'Unknown'))
+            .where((PhotoPerson.assigned_by == 'manual') & (Person.name.not_in(['Unknown','Not a person'])))
         )
         faces = []
         ids = []
@@ -66,9 +66,30 @@ class PersonRecognizer:
         else:
             image_cv2 = image_cv2_input
         
-        face_img = resize_image(image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w], width = self.normalized_width)
+        face_img = image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w]
         face_img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
-        return np.array(face_img_gray, 'uint8')
+        face_img_resized = resize_image(face_img_gray, width = self.normalized_width,height=self.normalized_width)
+        #face_img_equalized = cv2.equalizeHist(face_img_resized)
+        #mask = np.zeros((self.normalized_width, self.normalized_width))
+        #face_img_normalized = cv2.normalize(face_img_equalized, mask, 0, 255, cv2.NORM_MINMAX)
+
+        return np.array(face_img_resized, 'uint8')
+    
+    def get_person_normalized_image_as_cv2(self,photo_person:PhotoPerson,image_cv2_input = None):
+        if image_cv2_input is None:
+            image_cv2 = cv2.imread(photo_person.photo.full_path)
+        else:
+            image_cv2 = image_cv2_input
+        
+        face_img = image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w]
+        
+        face_img_resized = resize_image(face_img, width = self.normalized_width,height=self.normalized_width)
+        face_img_gray = cv2.cvtColor(face_img_resized, cv2.COLOR_BGR2GRAY)
+        #face_img_equalized = cv2.equalizeHist(face_img_resized)
+        #mask = np.zeros((self.normalized_width, self.normalized_width))
+        #face_img_normalized = cv2.normalize(face_img_equalized, mask, 0, 255, cv2.NORM_MINMAX)
+
+        return face_img_gray
 
 
     def predict(self,photo_person:PhotoPerson,image_cv2_input = None):

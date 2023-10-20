@@ -15,7 +15,7 @@ class TestPersonRecognize(unittest.TestCase):
         basedir = BaseDir.create(base_path = TEST_PHOTO_BASE_DIR)
         self.assertIsNotNone(basedir)
 
-        PhotoProject.basic_load_basedir(basedir)
+        PhotoProject.reload_basedir(basedir)
 
         processing = FaceDetect()
         processing.init_database()

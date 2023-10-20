@@ -19,6 +19,11 @@ class PhotoCommand:
         parser_1.add_argument("dir", help="Full path of the base directory",type=str, default=None)
         parser_1.set_defaults(func=self._add_basedir)
 
+        parser_1b = sub_parsers.add_parser('reload_basedir',help='Check an existing base dit for new files')
+        parser_1b.add_argument("dir_id", help="Id of the base directory",type=int, default=1,const=1,nargs='?')
+        parser_1b.set_defaults(func=self._reload_basedir)
+        
+
         parser_2 = sub_parsers.add_parser('scan_basedir',help='Scan a base directory for photos and add these to the database')
         parser_2.add_argument("dir_id", help="Id of the base directory",type=int, default=1,const=1,nargs='?')
         parser_2.add_argument("-a","--all",help="Recalculate even if the fields is already filled in the database", action='store_true',default=False)
@@ -53,6 +58,15 @@ class PhotoCommand:
 
         print(f'Adding basedir {self._args.dir}')
         PhotoProject.add_basedir(self._args.dir)
+        print('Ready')
+        PhotoProject.close_current_database()
+
+    def _reload_basedir(self):
+        PhotoProject.set_current_database(self._args.project)
+
+        basedir:BaseDir = BaseDir.get_by_id(self._args.dir_id)
+        print(f'Reloading basedir {basedir.dir_id} : {basedir.base_path}')
+        PhotoProject.reload_basedir(base_dir=basedir)
         print('Ready')
         PhotoProject.close_current_database()
 

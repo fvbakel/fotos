@@ -44,7 +44,7 @@ class TestModel(unittest.TestCase):
         basedir = BaseDir.create(base_path = base_path)
         self.assertIsNotNone(basedir)
 
-        PhotoProject.basic_load_basedir(basedir)
+        PhotoProject.reload_basedir(basedir)
 
         photo:Photo = Photo.select().where(Photo.base_dir == basedir and Photo.path == 'sub_dir_1/test_file_1.jpg').get()
         self.assertIsNotNone(photo)
@@ -85,7 +85,7 @@ class TestModel(unittest.TestCase):
         basedir = BaseDir.create(base_path = base_path)
         self.assertIsNotNone(basedir)
 
-        PhotoProject.basic_load_basedir(basedir)
+        PhotoProject.reload_basedir(basedir)
 
         self.do_processing(PhotoProcessing() )
         self.do_processing(ExistsProcessing() )

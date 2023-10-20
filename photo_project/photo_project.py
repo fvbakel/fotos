@@ -47,16 +47,17 @@ class PhotoProject:
 
 
     @classmethod
-    def basic_load_basedir(cls,base_dir:BaseDir):
+    def reload_basedir(cls,base_dir:BaseDir):
         for root, file in util_functions.get_files(base_dir.base_path,cls.allowed_extensions):
             photo_path = pathlib.Path(root) / pathlib.Path(file)
             photo_sub_path = str(photo_path).removeprefix(base_dir.base_path)[1:]
-            Photo.create(base_dir_id=base_dir , path=photo_sub_path,md5='')
+            photo = Photo.get_or_create(base_dir_id=base_dir , path=photo_sub_path)
+            #Photo.create(base_dir_id=base_dir , path=photo_sub_path,md5='')
             
     @classmethod
     def add_basedir(cls,base_dir_str):
         basedir = BaseDir.create(base_path = base_dir_str)
-        cls.basic_load_basedir(basedir)
+        cls.reload_basedir(basedir)
         return basedir
     
     @classmethod
@@ -66,7 +67,7 @@ class PhotoProject:
         if force:
             query = (Photo.select().where(Photo.base_dir == base_dir))
         else:
-            query = (Photo.select().where(Photo.base_dir == base_dir, Photo.md5 == '' ))
+            query = (Photo.select().where( (Photo.base_dir == base_dir) & (( Photo.md5 == '' ) | Photo.md5.is_null(True) )))
 
         total = query.count()
         print(f'total to scan is: {total}')
@@ -152,6 +153,18 @@ class PhotoProject:
             .where( (PhotoPerson.assigned_by == 'PersonRecognize') )
         )
         return photos_with_recognized_person_query
+
+    @classmethod
+    def get_custom(cls,assigned_by:str,person_name:str):
+        query = ( Photo
+            .select()
+            .join(PhotoPerson,on=(PhotoPerson.photo == Photo.photo_id))
+            .join(Person,on=(Person.person_id == PhotoPerson.person_id))
+            .group_by(Photo.photo_id)
+            .where( (PhotoPerson.assigned_by == assigned_by) & (Person.name == person_name))
+        )
+        return query
+    
 
     @classmethod
     def get_random_photo(cls):

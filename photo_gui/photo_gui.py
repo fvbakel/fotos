@@ -61,8 +61,8 @@ class PhotosMainWindow(QMainWindow):
         self.query_menu = self.menuBar().addMenu("&Query")
 
         self.query_group_act = QActionGroup(self.query_menu)
-        texts = ["All", "Persons", "Recognized Persons","Duplicates"]
-        functions = [self.query_all,self.query_persons,self.query_recognized,self.query_duplicates]
+        texts = ["All", "Persons", "Recognized Persons","Custom","Duplicates"]
+        functions = [self.query_all,self.query_persons,self.query_recognized,self.query_custom,self.query_duplicates]
         for text, function in zip(texts,functions):
             action = QAction(text, self.query_menu, checkable=True, checked=text==texts[0])
             self.query_menu.addAction(action)
@@ -126,10 +126,21 @@ class PhotosMainWindow(QMainWindow):
         person_confidence_label = QLabel('Confidence prediction:') 
         self.person_confidence = QLabel('')
 
+        query_label = QLabel('Custom query:') 
+        self.query_assigned_by = QComboBox()
+        self.query_assigned_by.addItems(['manual','FaceDetect','PersonRecognize'])
+        
         self.person_name.setFixedWidth(200)
         self.person_name.setMaxLength(255)
+
         self.save_button = QPushButton('Save')
         self.save_button.clicked.connect(self.save_person)
+
+        self.prev_person_button = QPushButton('Previous')
+        self.prev_person_button.clicked.connect(self.previous_person)
+        self.next_person_button = QPushButton('Next')
+        self.next_person_button.clicked.connect(self.next_person)
+
   
         self.right_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.right_layout.addWidget(person_assigned_by_label,0,0)
@@ -139,18 +150,24 @@ class PhotosMainWindow(QMainWindow):
         self.right_layout.addWidget(self.person_list,4,0)
         self.right_layout.addWidget(self.person_name,5,0 )
         self.right_layout.addWidget(self.save_button,6,0 )
+        self.right_layout.addWidget(self.next_person_button,7,0 )
+        self.right_layout.addWidget(self.prev_person_button,8,0 )
         
-        self.right_layout.addWidget(person_predicted_label,7,0 )
-        self.right_layout.addWidget(self.person_predicted,8,0 )
+        self.right_layout.addWidget(person_predicted_label,20,0 )
+        self.right_layout.addWidget(self.person_predicted,21,0 )
 
-        self.right_layout.addWidget(person_confidence_label,9,0 )
-        self.right_layout.addWidget(self.person_confidence,10,0 )
+        self.right_layout.addWidget(person_confidence_label,22,0 )
+        self.right_layout.addWidget(self.person_confidence,23,0 )
+
+        self.right_layout.addWidget(query_label)
+        self.right_layout.addWidget(self.query_assigned_by)
 
         self.navigation_layout.addWidget(self.first_button)
         self.navigation_layout.addWidget(self.prev_button)
         self.navigation_layout.addWidget(self.random_button)
         self.navigation_layout.addWidget(self.next_button)
         self.navigation_layout.addWidget(self.last_button)
+
 
         self.im_layout.addWidget(self.image_frame)
         
@@ -181,6 +198,12 @@ class PhotosMainWindow(QMainWindow):
     def query_recognized(self):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_recognized()]
         self.current_index = -1
+
+    def query_custom(self):
+        person_name = self.person_list.currentText()
+        assigned_by = self.query_assigned_by.currentText()
+        self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_custom(assigned_by = assigned_by,person_name = person_name )]
+        self.current_index = -1
     
     def train_face_model(self):
         self.recognizer.run_training_all()
@@ -190,7 +213,7 @@ class PhotosMainWindow(QMainWindow):
             self.person_predicted.setText('')
             self.person_confidence.setText('')
             return
-        photo_person:PhotoPerson = self.current_photo.persons[0]
+        photo_person:PhotoPerson = self.current_photo.persons[self.current_photo_person_index]
         
         person, confidence = self.recognizer.predict(photo_person)
         self.person_predicted.setText(person.name)
@@ -200,12 +223,12 @@ class PhotosMainWindow(QMainWindow):
         if len(self.current_photo.persons) == 0:
             return
         
-        photo_person:PhotoPerson = self.current_photo.persons[0]
+        photo_person:PhotoPerson = self.current_photo.persons[self.current_photo_person_index]
         person_name = self.person_list.currentText()
         if person_name == 'Unknown':
-            return
+            pass
         if person_name == 'Not a person':
-            return
+            pass
         if person_name == 'New person':
             person_name = self.person_name.text().strip()
             if len(person_name) == 0:
@@ -295,8 +318,8 @@ class PhotosMainWindow(QMainWindow):
             for person in self.current_photo.persons:
                 cv2.rectangle(self.image_cv2,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),4)
 
-            self.show_person_image()
-            self.predict_person()
+            self.current_photo_person_index = 0
+            self.display_person()
 
             self.image_cv2_resized = resize_image(self.image_cv2,height=self.image_frame.size().height())
             
@@ -311,6 +334,7 @@ class PhotosMainWindow(QMainWindow):
             #self.image_frame.setScaledContents( True )
             self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
             self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
+
         except Exception as err:
             logging.error(err)
             err_box = QMessageBox()
@@ -320,10 +344,36 @@ class PhotosMainWindow(QMainWindow):
             err_box.setStandardButtons(QMessageBox.Ok)
             err_box.exec_()
 
+    def next_person(self):
+        if self.set_current_person_by_index(self.current_photo_person_index + 1):
+            self.display_person()
+    
+    def previous_person(self):
+        if self.set_current_person_by_index(self.current_photo_person_index - 1):
+            self.display_person()
+
+    def set_current_person_by_index(self,index:int):
+        if index < 0 or index > (len(self.current_photo.persons) -1):
+            return False
+        self.current_photo_person_index = index
+        return True
+
+    def display_person(self):
+        self.show_person_image()
+        self.predict_person()
+
+    def clear_peron(self):
+        self.person_image_frame.clear()
+        name = 'Unkown'
+        index = self.person_list.findText(name)
+        self.person_list.setCurrentIndex(index)
+        self.person_predicted.setText('')
+        self.person_confidence.setText('')
+
     def show_person_image(self):
         self.person_name.setText('')
         if len(self.current_photo.persons) == 0:
-            self.person_image_frame.clear()
+            self.clear_peron()
             return
         self.person_image_cv2 = self.get_person_image(200,200)
         self.person_image = QImage(
@@ -335,8 +385,8 @@ class PhotosMainWindow(QMainWindow):
         ).rgbSwapped()
         self.person_image_frame.setPixmap(QPixmap.fromImage(self.person_image))
 
-        self.person_assigned_by.setText(self.current_photo.persons[0].assigned_by)
-        person:Person = self.current_photo.persons[0].person
+        self.person_assigned_by.setText(self.current_photo.persons[self.current_photo_person_index].assigned_by)
+        person:Person = self.current_photo.persons[self.current_photo_person_index].person
         if person is not None:
             name = person.name
         else:
@@ -348,9 +398,10 @@ class PhotosMainWindow(QMainWindow):
         if len(self.current_photo.persons) == 0:
             return None
         
-        person:PhotoPerson = self.current_photo.persons[0]
-
-        person_img = resize_image(self.image_cv2[person.y:person.y + person.h, person.x:person.x + person.w],width=200)
+        photo_person:PhotoPerson = self.current_photo.persons[self.current_photo_person_index]
+        
+        person_img = resize_image(self.image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w],width=200)
+        #person_img = self.recognizer.get_person_normalized_image_as_cv2(photo_person=photo_person)
 
         return person_img
 
