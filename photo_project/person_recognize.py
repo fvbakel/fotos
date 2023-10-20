@@ -25,7 +25,7 @@ class PersonRecognizer:
             self._max_distance = 2000
         else:
             raise ValueError(f'Unexpected recognizer_type: {recognizer_type}' )
-        self.normalized_width = 300
+        self.normalized_width = 200
         self.is_loaded = False
         self.reload_model()
 
