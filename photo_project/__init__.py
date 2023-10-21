@@ -24,3 +24,7 @@ from photo_project.person_recognize import (
     PersonRecognizer,
     PersonRecognizerCombined
 )
+from photo_project.photo_2_video import (
+    Person2Video,
+    Person2VideoMode
+)

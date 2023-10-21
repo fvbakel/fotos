@@ -68,7 +68,7 @@ class PersonRecognizer:
         
         face_img = image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w]
         face_img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
-        face_img_resized = resize_image(face_img_gray, width = self.normalized_width,height=self.normalized_width)
+        face_img_resized = resize_image(face_img_gray, max_width = self.normalized_width,max_height=self.normalized_width)
         #face_img_equalized = cv2.equalizeHist(face_img_resized)
         #mask = np.zeros((self.normalized_width, self.normalized_width))
         #face_img_normalized = cv2.normalize(face_img_equalized, mask, 0, 255, cv2.NORM_MINMAX)
@@ -83,7 +83,7 @@ class PersonRecognizer:
         
         face_img = image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w]
         
-        face_img_resized = resize_image(face_img, width = self.normalized_width,height=self.normalized_width)
+        face_img_resized = resize_image(face_img, max_width = self.normalized_width,max_height=self.normalized_width)
         face_img_gray = cv2.cvtColor(face_img_resized, cv2.COLOR_BGR2GRAY)
         #face_img_equalized = cv2.equalizeHist(face_img_resized)
         #mask = np.zeros((self.normalized_width, self.normalized_width))

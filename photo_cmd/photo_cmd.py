@@ -108,7 +108,7 @@ class PhotoCommand:
             for person in photo.persons:
                 cv2.rectangle(image,(person.x,person.y),(person.x+person.w,person.y+person.h),(255,0,0),2)
 
-            image = resize_image(image,width=900)
+            image = resize_image(image,max_width=900)
             #cv2.namedWindow('image window', cv2.WINDOW_NORMAL)
             cv2.imshow('image window', image)
             k = cv2.waitKey(0)

@@ -94,3 +94,17 @@ class TestUtils(unittest.TestCase):
         self.assertTrue(find_overlap(rect,all_rect))
 
 
+    def test_resize_dimension(self):
+        dim_org = (10,20)
+
+        dim_after = resize_dimension(dim_org,max_width=20)
+        self.assertTupleEqual(dim_after,(20,40))
+
+        dim_after = resize_dimension(dim_org,max_width=10)
+        self.assertTupleEqual(dim_after,(10,20))
+
+        dim_after = resize_dimension(dim_org,max_width=10,max_height=10)
+        self.assertTupleEqual(dim_after,(5,10))
+
+        dim_after = resize_dimension(dim_org,max_width=5,max_height=20)
+        self.assertTupleEqual(dim_after,(5,10))

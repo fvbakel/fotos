@@ -8,7 +8,9 @@ from photo_project import (
     PhotoPerson,
     Person,
     PersonRecognizer,
-    PersonRecognizerCombined
+    PersonRecognizerCombined,
+    Person2Video,
+    Person2VideoMode
 )
 
 from util_functions import resize_image
@@ -28,8 +30,7 @@ class PhotosMainWindow(QMainWindow):
         self._init_photo_layout()
         self.current_photo:Photo = None
         self.current_photos: list[Photo] = []
-        self.current_index:int = -1
-        
+        self.current_index:int = -1    
 
     def _init_file_menu(self):
         self.file_menu = self.menuBar().addMenu("&File")
@@ -54,8 +55,12 @@ class PhotosMainWindow(QMainWindow):
         self.edit_menu = self.menuBar().addMenu("&Edit")
         self.train_action = QAction("&Run Training face model")
         self.train_action.triggered.connect(self.train_face_model)
+        self.person_video_action = QAction("&Make person video")
+        self.person_video_action.triggered.connect(self.make_person_video)
 
         self.edit_menu.addAction(self.train_action)
+        self.edit_menu.addSeparator()
+        self.edit_menu.addAction(self.person_video_action)
 
     def _init_query_menu(self):
         self.query_menu = self.menuBar().addMenu("&Query")
@@ -76,6 +81,18 @@ class PhotosMainWindow(QMainWindow):
         self.help_menu = self.menuBar().addMenu("&Help")
         self.about_action = QAction("&About")
         self.help_menu.addAction(self.about_action)
+
+        self.help_menu.addSeparator()
+        self.logging_group_act = QActionGroup(self.help_menu)
+        texts = ["CRITICAL", "ERROR", "WARN" ,"INFO","DEBUG"]
+        levels = [logging.CRITICAL,logging.ERROR,logging.WARN,logging.INFO,logging.DEBUG]
+        for text, level in zip(texts,levels):
+            action = QAction(text, self.help_menu, checkable=True, checked=text==texts[0])
+            self.help_menu.addAction(action)
+            action.level = level
+            self.logging_group_act.addAction(action)
+        self.logging_group_act.setExclusive(True)
+        self.logging_group_act.triggered.connect(self.reset_logging)
 
         self.about_action.triggered.connect(self.show_about_dialog)
 
@@ -113,7 +130,7 @@ class PhotosMainWindow(QMainWindow):
         person_assigned_by_label = QLabel('Assigned by:') 
         self.person_assigned_by = QLabel('') 
         self.person_list = QComboBox()
-        self.person_list.addItems(['Unkown','Not a person','New person'])
+        self.person_list.addItems(['Unknown','Not a person','New person'])
  
         self.person_name = QLineEdit()
         person_name_label.setFixedWidth(200)
@@ -207,6 +224,31 @@ class PhotosMainWindow(QMainWindow):
     
     def train_face_model(self):
         self.recognizer.run_training_all()
+
+    def make_person_video(self):
+        person_name = self.person_list.currentText()
+        if person_name == 'Unknown':
+            return
+        if person_name == 'Not a person':
+            return
+        if person_name == 'New person':
+            person_name = self.person_name.text().strip()
+            if len(person_name) == 0:
+                return
+            
+        person = Person.get(name=person_name)
+        person2video = Person2Video(person=person)
+        person2video.load_images()
+
+        filename = QFileDialog.getSaveFileName(self, "Save",filter='*.avi')[0]
+        if filename:
+            if not filename.endswith('.avi'):
+                filename += '.avi'
+
+            output_filename = filename.replace('.avi','_face.avi')    
+            person2video.write(filename=output_filename,mode = Person2VideoMode.FACE)
+            output_filename = filename.replace('.avi','_full.avi')
+            person2video.write(filename=output_filename,mode=Person2VideoMode.FULL)
 
     def predict_person(self):
         if len(self.current_photo.persons) == 0:
@@ -321,7 +363,8 @@ class PhotosMainWindow(QMainWindow):
             self.current_photo_person_index = 0
             self.display_person()
 
-            self.image_cv2_resized = resize_image(self.image_cv2,height=self.image_frame.size().height())
+            self.image_cv2_resized = resize_image(self.image_cv2,max_height=self.image_frame.size().height())
+            logging.info(f"Resized for GUI from {self.image_cv2.shape} to {self.image_cv2_resized.shape} image: {self.current_photo.full_path}")
             
             self.image = QImage(
                 self.image_cv2_resized.data, 
@@ -364,7 +407,7 @@ class PhotosMainWindow(QMainWindow):
 
     def clear_peron(self):
         self.person_image_frame.clear()
-        name = 'Unkown'
+        name = 'Unknown'
         index = self.person_list.findText(name)
         self.person_list.setCurrentIndex(index)
         self.person_predicted.setText('')
@@ -390,7 +433,7 @@ class PhotosMainWindow(QMainWindow):
         if person is not None:
             name = person.name
         else:
-            name = 'Unkown'
+            name = 'Unknown'
         index = self.person_list.findText(name)
         self.person_list.setCurrentIndex(index)
 
@@ -400,7 +443,7 @@ class PhotosMainWindow(QMainWindow):
         
         photo_person:PhotoPerson = self.current_photo.persons[self.current_photo_person_index]
         
-        person_img = resize_image(self.image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w],width=200)
+        person_img = resize_image(self.image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w],max_width=200)
         #person_img = self.recognizer.get_person_normalized_image_as_cv2(photo_person=photo_person)
 
         return person_img
@@ -414,6 +457,18 @@ class PhotosMainWindow(QMainWindow):
             "<p>Version 0.0.2<br/>" \
             "Copyright &copy; F. van Bakel.</p>"
         QMessageBox.about(self, "About my app", text)
+
+    def reset_logging(self, action:QAction):
+
+        level = action.level
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        logging.basicConfig(filename='photo_gui.log',
+                    filemode='w',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=level)
+        logging.info('Logging reset')
 
 
 def start_app():
