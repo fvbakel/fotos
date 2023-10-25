@@ -26,20 +26,20 @@ class PersonRecognizer:
         else:
             raise ValueError(f'Unexpected recognizer_type: {recognizer_type}' )
         self.normalized_width = 200
-        self.is_loaded = False
+        self.is_trained = False
         self.reload_model()
 
     def reload_model(self):
         if pathlib.Path(self._model_file).is_file():
             self.recognizer.read(self._model_file)
-            self.is_loaded = True
+            self.is_trained = True
 
     def run_training_all(self):
         ids,faces = self._read_all_train_data()
         if len(ids > 0):
             self.recognizer.train(faces,ids)
             self.recognizer.save(self._model_file)
-            self.is_loaded = True
+            self.is_trained = True
         else:
             logging.warning('No training data set')
 
@@ -67,31 +67,15 @@ class PersonRecognizer:
             image_cv2 = image_cv2_input
         
         face_img = image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w]
-        face_img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
-        face_img_resized = resize_image(face_img_gray, max_width = self.normalized_width,max_height=self.normalized_width)
-        #face_img_equalized = cv2.equalizeHist(face_img_resized)
-        #mask = np.zeros((self.normalized_width, self.normalized_width))
-        #face_img_normalized = cv2.normalize(face_img_equalized, mask, 0, 255, cv2.NORM_MINMAX)
 
-        return np.array(face_img_resized, 'uint8')
-    
-    def get_person_normalized_image_as_cv2(self,photo_person:PhotoPerson,image_cv2_input = None):
-        if image_cv2_input is None:
-            image_cv2 = cv2.imread(photo_person.photo.full_path)
-        else:
-            image_cv2 = image_cv2_input
-        
-        face_img = image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w]
-        
         face_img_resized = resize_image(face_img, max_width = self.normalized_width,max_height=self.normalized_width)
         face_img_gray = cv2.cvtColor(face_img_resized, cv2.COLOR_BGR2GRAY)
-        #face_img_equalized = cv2.equalizeHist(face_img_resized)
-        #mask = np.zeros((self.normalized_width, self.normalized_width))
-        #face_img_normalized = cv2.normalize(face_img_equalized, mask, 0, 255, cv2.NORM_MINMAX)
+        face_img_equalized = cv2.equalizeHist(face_img_gray)
+        mask = np.zeros((self.normalized_width, self.normalized_width))
+        face_img_normalized = cv2.normalize(face_img_equalized, mask, 0, 255, cv2.NORM_MINMAX)
 
-        return face_img_gray
-
-
+        return np.array(face_img_normalized, 'uint8')
+    
     def predict(self,photo_person:PhotoPerson,image_cv2_input = None):
         faceNP = self.get_person_normalized_image(photo_person,image_cv2_input = image_cv2_input)
         id, distance = self.recognizer.predict(faceNP)
@@ -117,9 +101,10 @@ class PersonRecognizerCombined:
         for recognizer in self.recognizers:
             recognizer.run_training_all()
 
+    @property
     def is_trained(self):
         for recognizer in self.recognizers:
-            if not recognizer.is_loaded:
+            if not recognizer.is_trained:
                 return False
         return True
 

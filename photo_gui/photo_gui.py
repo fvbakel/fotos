@@ -23,6 +23,7 @@ class PhotosMainWindow(QMainWindow):
 
     def __init__(self):
         super(QMainWindow, self).__init__(None)
+        self.person_image_width = 200
         self._init_file_menu()
         self._init_edit_menu()
         self._init_query_menu()
@@ -30,7 +31,8 @@ class PhotosMainWindow(QMainWindow):
         self._init_photo_layout()
         self.current_photo:Photo = None
         self.current_photos: list[Photo] = []
-        self.current_index:int = -1    
+        self.current_index:int = -1
+        
 
     def _init_file_menu(self):
         self.file_menu = self.menuBar().addMenu("&File")
@@ -123,12 +125,17 @@ class PhotosMainWindow(QMainWindow):
         self.navigation_layout = QHBoxLayout()
         
         self.person_image_frame = QLabel()
-        self.person_image_frame.setFixedWidth(200)
-        self.person_image_frame.setFixedHeight(200)
+        self.person_image_frame.setFixedWidth(self.person_image_width)
+        self.person_image_frame.setFixedHeight(self.person_image_width)
 
         person_name_label = QLabel('Person name:') 
         person_assigned_by_label = QLabel('Assigned by:') 
         self.person_assigned_by = QLabel('') 
+
+        self.photo_type = QComboBox()
+        self.photo_type.addItems(['Normal','Gray','Normalized'])
+        self.photo_type.currentTextChanged.connect(self.photo_type_changed)
+
         self.person_list = QComboBox()
         self.person_list.addItems(['Unknown','Not a person','New person'])
  
@@ -163,12 +170,13 @@ class PhotosMainWindow(QMainWindow):
         self.right_layout.addWidget(person_assigned_by_label,0,0)
         self.right_layout.addWidget(self.person_assigned_by,1,0)
         self.right_layout.addWidget(self.person_image_frame,2,0)
-        self.right_layout.addWidget(person_name_label,3,0)
-        self.right_layout.addWidget(self.person_list,4,0)
-        self.right_layout.addWidget(self.person_name,5,0 )
-        self.right_layout.addWidget(self.save_button,6,0 )
-        self.right_layout.addWidget(self.next_person_button,7,0 )
-        self.right_layout.addWidget(self.prev_person_button,8,0 )
+        self.right_layout.addWidget(self.photo_type,3,0)
+        self.right_layout.addWidget(person_name_label,4,0)
+        self.right_layout.addWidget(self.person_list,5,0)
+        self.right_layout.addWidget(self.person_name,6,0 )
+        self.right_layout.addWidget(self.save_button,7,0 )
+        self.right_layout.addWidget(self.next_person_button,8,0 )
+        self.right_layout.addWidget(self.prev_person_button,9,0 )
         
         self.right_layout.addWidget(person_predicted_label,20,0 )
         self.right_layout.addWidget(self.person_predicted,21,0 )
@@ -251,7 +259,7 @@ class PhotosMainWindow(QMainWindow):
             person2video.write(filename=output_filename,mode=Person2VideoMode.FULL)
 
     def predict_person(self):
-        if len(self.current_photo.persons) == 0:
+        if len(self.current_photo.persons) == 0 or not self.recognizer.is_trained:
             self.person_predicted.setText('')
             self.person_confidence.setText('')
             return
@@ -402,10 +410,10 @@ class PhotosMainWindow(QMainWindow):
         return True
 
     def display_person(self):
-        self.show_person_image()
+        self.show_person_details()
         self.predict_person()
 
-    def clear_peron(self):
+    def clear_person(self):
         self.person_image_frame.clear()
         name = 'Unknown'
         index = self.person_list.findText(name)
@@ -413,20 +421,13 @@ class PhotosMainWindow(QMainWindow):
         self.person_predicted.setText('')
         self.person_confidence.setText('')
 
-    def show_person_image(self):
+    def show_person_details(self):
         self.person_name.setText('')
         if len(self.current_photo.persons) == 0:
-            self.clear_peron()
+            self.clear_person()
             return
-        self.person_image_cv2 = self.get_person_image(200,200)
-        self.person_image = QImage(
-            self.person_image_cv2.data, 
-            self.person_image_cv2.shape[1], 
-            self.person_image_cv2.shape[0], 
-            self.person_image_cv2.strides[0], 
-            QImage.Format_RGB888
-        ).rgbSwapped()
-        self.person_image_frame.setPixmap(QPixmap.fromImage(self.person_image))
+
+        self.set_person_image()
 
         self.person_assigned_by.setText(self.current_photo.persons[self.current_photo_person_index].assigned_by)
         person:Person = self.current_photo.persons[self.current_photo_person_index].person
@@ -437,16 +438,46 @@ class PhotosMainWindow(QMainWindow):
         index = self.person_list.findText(name)
         self.person_list.setCurrentIndex(index)
 
-    def get_person_image(self,out_w,out_h):
+    def photo_type_changed(self,value):
+        self.set_person_image()
+
+    def set_person_image(self):
         if len(self.current_photo.persons) == 0:
             return None
         
         photo_person:PhotoPerson = self.current_photo.persons[self.current_photo_person_index]
         
-        person_img = resize_image(self.image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w],max_width=200)
-        #person_img = self.recognizer.get_person_normalized_image_as_cv2(photo_person=photo_person)
-
-        return person_img
+        display_type = self.photo_type.currentText()
+        if display_type == 'Normalized':
+            person_img_cv2 = self.recognizer.get_person_normalized_image(photo_person=photo_person)
+            self.person_image = QImage(
+                person_img_cv2.data, 
+                person_img_cv2.shape[1], 
+                person_img_cv2.shape[0], 
+                person_img_cv2.shape[1], 
+                QImage.Format_Grayscale8
+            )
+        elif display_type == 'Gray':
+            person_img_cv2 = resize_image(self.image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w],max_width=self.person_image_width)
+            person_img_cv2 = cv2.cvtColor(person_img_cv2, cv2.COLOR_BGR2GRAY)
+            self.person_image = QImage(
+                person_img_cv2.data, 
+                person_img_cv2.shape[1], 
+                person_img_cv2.shape[0], 
+                person_img_cv2.shape[1], 
+                QImage.Format_Grayscale8
+            )
+        else:
+            person_img_cv2 = resize_image(self.image_cv2[photo_person.y:photo_person.y + photo_person.h, photo_person.x:photo_person.x + photo_person.w],max_width=self.person_image_width)
+            
+            self.person_image = QImage(
+                person_img_cv2.data, 
+                person_img_cv2.shape[1], 
+                person_img_cv2.shape[0], 
+                person_img_cv2.strides[0], 
+                QImage.Format_RGB888
+            ).rgbSwapped()
+        self.person_image_frame.setPixmap(QPixmap.fromImage(self.person_image))
 
     def show_about_dialog(self):
         text = "<center>" \
