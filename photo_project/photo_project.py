@@ -6,6 +6,27 @@ import time
 from datetime import timedelta,datetime
 import logging
 
+
+class PhotoQueryParameters:
+    
+    def __init__(self):
+        self.after: datetime            = None
+        self.before: datetime           = None
+        self.path: str                  = None
+        self.is_duplicate: bool         = None
+        self.is_existing: bool          = None
+        
+        self.person_name: str           = None
+        self.nr_of_faces: int           = None
+        self.nr_of_person: int          = None
+
+        self.nr_of_faces_operator: int   = None
+        self.nr_of_person_operator: int  = None
+        self.assigned_by:str             = None
+
+
+
+
 """
 For now the peewee based model only supports one active database
 so the Photo project has class methods only.

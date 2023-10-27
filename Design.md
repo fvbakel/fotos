@@ -137,3 +137,4 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 - [ ] On/of face rectangles
 - [ ] Detect other objects than faces
 - [ ] Manage basedirs
+- [ ] Constants for some meaningfull strings

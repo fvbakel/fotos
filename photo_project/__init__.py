@@ -1,5 +1,6 @@
 from photo_project.photo_project import (
-    PhotoProject
+    PhotoProject,
+    PhotoQueryParameters
 )
 from photo_project.model import (
     Photo,

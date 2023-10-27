@@ -10,7 +10,8 @@ from photo_project import (
     PersonRecognizer,
     PersonRecognizerCombined,
     Person2Video,
-    Person2VideoMode
+    Person2VideoMode,
+    PhotoQueryParameters
 )
 
 from util_functions import resize_image,force_image_size
@@ -18,6 +19,66 @@ from util_functions import resize_image,force_image_size
 import cv2
 import random
 import logging
+
+class PhotosMainWindow:
+    pass
+
+class QueryDialog(QDialog):
+
+    def __init__(self, main_window:PhotosMainWindow ):
+        super(QueryDialog, self).__init__(main_window)
+        self.main_window = main_window
+        self.query_parameters = PhotoQueryParameters()
+        self.setWindowTitle('Custom query')
+        
+        layout = QGridLayout(self)
+
+        self.person_list = QComboBox()
+        self.person_list.addItem('')
+        for person in Person.select():
+                self.person_list.addItem(person.name)
+        layout.addWidget(QLabel('Person'),1,0)
+        layout.addWidget(self.person_list,1,1)
+
+        self.assigned_by_list = QComboBox()
+        # TODO: get values dynamic from from database
+        self.assigned_by_list.addItems(['','manual','FaceDetect','PersonRecognize'])
+        layout.addWidget(QLabel('Assigned_by'),2,0)
+        layout.addWidget(self.assigned_by_list,2,1)
+
+        # TODO: get min and max value from database 
+        self.after = QDateTimeEdit(self)
+        self.after.setCalendarPopup(True)
+        self.clear_date(self.after)
+
+        layout.addWidget(QLabel('After'),10,0)
+        layout.addWidget(self.after,10,1)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def update_query_parameters(self):
+        self.query_parameters.person_name = self.person_list.currentText()
+        self.query_parameters.assigned_by = self.assigned_by_list.currentText()
+        if self.after.specialValueText() == ' ':
+            self.query_parameters.after = None
+        else:
+            self.query_parameters.after = self.after.dateTime()
+
+    def clear_date(self,date_edit:QDateTimeEdit):
+        date_edit.setSpecialValueText( " " )
+        date_edit.setDate( QDate.fromString( "01/01/0001", "dd/MM/yyyy" ) )
+
+    @staticmethod
+    def get_query_parameters(main_window:PhotosMainWindow):
+        dialog = QueryDialog(main_window)
+        result = dialog.exec_()
+        dialog.update_query_parameters()
+        return (dialog.query_parameters, result == QDialog.Accepted)
 
 class PhotosMainWindow(QMainWindow):
 
@@ -152,10 +213,6 @@ class PhotosMainWindow(QMainWindow):
         
         person_confidence_label = QLabel('Confidence prediction:') 
         self.person_confidence = QLabel('')
-
-        query_label = QLabel('Custom query:') 
-        self.query_assigned_by = QComboBox()
-        self.query_assigned_by.addItems(['manual','FaceDetect','PersonRecognize'])
         
         self.person_name.setFixedWidth(200)
         self.person_name.setMaxLength(255)
@@ -186,9 +243,6 @@ class PhotosMainWindow(QMainWindow):
 
         self.right_layout.addWidget(person_confidence_label,22,0 )
         self.right_layout.addWidget(self.person_confidence,23,0 )
-
-        self.right_layout.addWidget(query_label)
-        self.right_layout.addWidget(self.query_assigned_by)
 
         self.navigation_layout.addWidget(self.first_button)
         self.navigation_layout.addWidget(self.prev_button)
@@ -228,9 +282,11 @@ class PhotosMainWindow(QMainWindow):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_recognized()]
 
     def query_custom(self):
-        person_name = self.person_list.currentText()
-        assigned_by = self.query_assigned_by.currentText()
-        self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_custom(assigned_by = assigned_by,person_name = person_name )]
+        query_parameters, result = QueryDialog.get_query_parameters(self)
+        if result:
+            person_name = query_parameters.person_name
+            assigned_by = query_parameters.assigned_by
+            self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_custom(assigned_by = assigned_by,person_name = person_name )]
     
     def show_status_query(self):
         nrFound = len(self.current_photos)
@@ -372,6 +428,7 @@ class PhotosMainWindow(QMainWindow):
         self.image_frame.clear()
         self.info.setText('')
         self.show_status_query()
+        self.clear_person()
 
     def show_photo(self):
         try:
