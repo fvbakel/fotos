@@ -25,7 +25,7 @@ class PhotosMainWindow(QMainWindow):
         super(QMainWindow, self).__init__(None)
         self.person_image_width = 200
         self._init_file_menu()
-        self._init_edit_menu()
+        self._init_tools_menu()
         self._init_query_menu()
         self._init_help_menu()
         self._init_photo_layout()
@@ -53,16 +53,16 @@ class PhotosMainWindow(QMainWindow):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
     
-    def _init_edit_menu(self):
-        self.edit_menu = self.menuBar().addMenu("&Edit")
+    def _init_tools_menu(self):
+        self.tools_menu = self.menuBar().addMenu("&Tools")
         self.train_action = QAction("&Run Training face model")
         self.train_action.triggered.connect(self.train_face_model)
         self.person_video_action = QAction("&Make person video")
         self.person_video_action.triggered.connect(self.make_person_video)
 
-        self.edit_menu.addAction(self.train_action)
-        self.edit_menu.addSeparator()
-        self.edit_menu.addAction(self.person_video_action)
+        self.tools_menu.addAction(self.train_action)
+        self.tools_menu.addSeparator()
+        self.tools_menu.addAction(self.person_video_action)
 
     def _init_query_menu(self):
         self.query_menu = self.menuBar().addMenu("&Query")

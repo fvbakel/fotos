@@ -136,3 +136,4 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 - [ ] Log level in command line
 - [ ] On/of face rectangles
 - [ ] Detect other objects than faces
+- [ ] Manage basedirs
