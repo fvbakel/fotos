@@ -13,7 +13,7 @@ from photo_project import (
     Person2VideoMode
 )
 
-from util_functions import resize_image
+from util_functions import resize_image,force_image_size
 
 import cv2
 import random
@@ -371,8 +371,12 @@ class PhotosMainWindow(QMainWindow):
             self.current_photo_person_index = 0
             self.display_person()
 
-            self.image_cv2_resized = resize_image(self.image_cv2,max_height=self.image_frame.size().height())
-            logging.info(f"Resized for GUI from {self.image_cv2.shape} to {self.image_cv2_resized.shape} image: {self.current_photo.full_path}")
+            frame_width = self.image_frame.size().width()
+            frame_height = self.image_frame.size().height()
+            #self.image_cv2_resized = resize_image(self.image_cv2,max_height=self.image_frame.size().height())
+            self.image_cv2_resized = force_image_size(self.image_cv2,width=frame_width ,height=frame_height)
+            
+            logging.info(f"Resized for GUI from {self.image_cv2.shape} to {self.image_cv2_resized.shape} to fit frame w,h {frame_width},{frame_height}  image: {self.current_photo.full_path}")
             
             self.image = QImage(
                 self.image_cv2_resized.data, 

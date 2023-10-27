@@ -48,11 +48,19 @@ def force_image_size(image, width=None, height=None, inter=cv2.INTER_AREA,fill_c
         return resized_image
     else:
         img_w, img_h = dim
-        w_extra = width - img_w
+
+        if width is None:
+            w_extra = 0
+        else:
+            w_extra = width - img_w
+
         top_extra = w_extra // 2
         bottom_extra = w_extra - top_extra
 
-        h_extra = height - img_h
+        if height is None:
+            h_extra = 0
+        else:
+            h_extra = height - img_h
         left_extra = h_extra // 2
         right_extra = h_extra - left_extra
 
