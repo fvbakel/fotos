@@ -115,6 +115,8 @@ class PhotosMainWindow(QMainWindow):
         self.last_button = QPushButton('Last')
         self.last_button.clicked.connect(self.show_last_photo)
 
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
 
         self.main_wid = QWidget(self)
         self.setCentralWidget(self.main_wid)
@@ -207,30 +209,37 @@ class PhotosMainWindow(QMainWindow):
 
     def update_query(self, action:QAction):
         action.query()
-        self.show_first_photo()
+        self.current_index = -1
+        if len(self.current_photos) > 0:
+            self.show_first_photo()
+        else:
+            self.clear_photo()
 
     def query_all(self):
         self.current_photos: list[Photo] = [ photo for photo in Photo.select().order_by(Photo.photo_id)]
-        self.current_index = -1
 
     def query_persons(self):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_persons()]
-        self.current_index = -1
 
     def query_duplicates(self):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_duplicates_as_objects()]
-        self.current_index = -1
     
     def query_recognized(self):
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_recognized()]
-        self.current_index = -1
 
     def query_custom(self):
         person_name = self.person_list.currentText()
         assigned_by = self.query_assigned_by.currentText()
         self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_custom(assigned_by = assigned_by,person_name = person_name )]
-        self.current_index = -1
     
+    def show_status_query(self):
+        nrFound = len(self.current_photos)
+        
+        if nrFound > 0: 
+            self.status_bar.showMessage(f'Found {nrFound} photos. Now showing photo {self.current_index + 1}')
+        else:
+            self.status_bar.showMessage(f'Found {nrFound} photos.')
+
     def train_face_model(self):
         self.recognizer.run_training_all()
 
@@ -359,9 +368,10 @@ class PhotosMainWindow(QMainWindow):
         self.current_index = index
         self.current_photo = self.current_photos[self.current_index]
 
-    def set_current_photo_by_id(self,photo_id:int = 1):
-        self.current_photo:Photo = Photo.get_by_id(photo_id)
-        self.current_index = -1
+    def clear_photo(self):
+        self.image_frame.clear()
+        self.info.setText('')
+        self.show_status_query()
 
     def show_photo(self):
         try:
@@ -390,7 +400,7 @@ class PhotosMainWindow(QMainWindow):
             #self.image_frame.setScaledContents( True )
             self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
             self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
-
+            self.show_status_query()
         except Exception as err:
             logging.error(err)
             err_box = QMessageBox()

@@ -119,7 +119,7 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 - [ ] Progress bar
 - [ ] Face dect in GUI
 - [ ] Scan in GUI
-- [ ] Log level in separate menu
+- [X] Log level in separate menu
 - [ ] View menu, introduce different views (file list, minuatures)
 - [ ] Dockable panels
 - [ ] Separate query panel, improve search (time, person)
@@ -130,7 +130,9 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 - [ ] Extract and export functions
 - [ ] Add processing management dialogs
 - [ ] Add other neural network based processing
-- [ ] Status bar
-- [ ] Query statistics
+- [X] Status bar
+- [X] Query statistics
 - [ ] Add observer pattern for progress
 - [ ] Log level in command line
+- [ ] On/of face rectangles
+- [ ] Detect other objects than faces
