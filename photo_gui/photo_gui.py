@@ -85,12 +85,13 @@ class PhotosMainWindow(QMainWindow):
         self.help_menu.addAction(self.about_action)
 
         self.help_menu.addSeparator()
-        self.logging_group_act = QActionGroup(self.help_menu)
+        self.logging_menu = self.help_menu.addMenu("&Logging")
+        self.logging_group_act = QActionGroup(self.logging_menu)
         texts = ["CRITICAL", "ERROR", "WARN" ,"INFO","DEBUG"]
         levels = [logging.CRITICAL,logging.ERROR,logging.WARN,logging.INFO,logging.DEBUG]
         for text, level in zip(texts,levels):
             action = QAction(text, self.help_menu, checkable=True, checked=text==texts[0])
-            self.help_menu.addAction(action)
+            self.logging_menu.addAction(action)
             action.level = level
             self.logging_group_act.addAction(action)
         self.logging_group_act.setExclusive(True)
