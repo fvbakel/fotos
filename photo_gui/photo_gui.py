@@ -19,6 +19,7 @@ from util_functions import resize_image,force_image_size
 import cv2
 import random
 import logging
+from datetime import date
 
 class PhotosMainWindow:
     pass
@@ -31,47 +32,109 @@ class QueryDialog(QDialog):
         self.query_parameters = PhotoQueryParameters()
         self.setWindowTitle('Custom query')
         
-        layout = QGridLayout(self)
+        self.layout = QGridLayout(self)
 
         self.person_list = QComboBox()
         self.person_list.addItem('')
         for person in Person.select():
                 self.person_list.addItem(person.name)
-        layout.addWidget(QLabel('Person'),1,0)
-        layout.addWidget(self.person_list,1,1)
+        self.layout.addWidget(QLabel('Person'),1,0)
+        self.layout.addWidget(self.person_list,1,2)
 
         self.assigned_by_list = QComboBox()
         # TODO: get values dynamic from from database
         self.assigned_by_list.addItems(['','manual','FaceDetect','PersonRecognize'])
-        layout.addWidget(QLabel('Assigned_by'),2,0)
-        layout.addWidget(self.assigned_by_list,2,1)
+        self.layout.addWidget(QLabel('Assigned_by'),2,0)
+        self.layout.addWidget(self.assigned_by_list,2,2)
 
+        self.path           = QLineEdit()
+        self.path_operator  = QComboBox()
+        self.path_operator.addItems(PhotoQueryParameters.STR_OPERATORS)
+        self.layout.addWidget(QLabel('Path'),3,0)
+        self.layout.addWidget(self.path_operator,3,1)
+        self.layout.addWidget(self.path,3,2)
+
+        self.nr_of_faces = QSpinBox(self) 
+        self.nr_of_faces.setRange(0,20)
+        self.nr_of_faces.setSpecialValueText('')
+        self.nr_of_faces_operator  = QComboBox()
+        self.nr_of_faces_operator.addItems(PhotoQueryParameters.NR_OPERATORS)
+        self.layout.addWidget(QLabel('Nr of faces'),4,0)
+        self.layout.addWidget(self.nr_of_faces_operator,4,1)
+        self.layout.addWidget(self.nr_of_faces,4,2)
+
+        self.nr_of_persons = QSpinBox(self) 
+        self.nr_of_persons.setRange(0,20)
+        self.nr_of_persons.setSpecialValueText('')
+        self.nr_of_persons_operator  = QComboBox()
+        self.nr_of_persons_operator.addItems(PhotoQueryParameters.NR_OPERATORS)
+        self.layout.addWidget(QLabel('Nr of persons'),5,0)
+        self.layout.addWidget(self.nr_of_persons_operator,5,1)
+        self.layout.addWidget(self.nr_of_persons,5,2)
+
+        self.exists_map = {
+            '':                 None,
+            'Exists':           True,
+            'Does not exists':  False
+        }
+        self.is_existing = QComboBox()
+        self.is_existing.addItems(self.exists_map.keys())
+        self.layout.addWidget(QLabel('File status'),6,0)
+        self.layout.addWidget(self.is_existing,6,2)
+
+        self.duplicate_map = {
+            '':                         None,
+            'Has duplicates':           True,
+            'Does not have duplicates': False
+        }
+        self.duplicate = QComboBox()
+        self.duplicate.addItems(self.duplicate_map.keys())
+        self.layout.addWidget(QLabel('Duplicates'),7,0)
+        self.layout.addWidget(self.duplicate,7,2)
+
+        self.min_date= QDate.fromString( "01/01/2000", "dd/MM/yyyy" )
+        self.max_date = date.today()
         # TODO: get min and max value from database 
-        self.after = QDateTimeEdit(self)
+        self.after = QDateEdit(self)
         self.after.setCalendarPopup(True)
-        self.clear_date(self.after)
+        self.after.setDate(self.min_date)
+        self.after.setMinimumDate(self.min_date)
+        self.after.setMaximumDate(self.max_date)
+        self.layout.addWidget(QLabel('After'),10,0)
+        self.layout.addWidget(self.after,10,2)
 
-        layout.addWidget(QLabel('After'),10,0)
-        layout.addWidget(self.after,10,1)
+        self.before = QDateEdit(self)
+        self.before.setCalendarPopup(True)
+        self.before.setDate(self.max_date)
+        self.before.setMinimumDate(self.min_date)
+        self.before.setMaximumDate(self.max_date)
+        self.layout.addWidget(QLabel('Before'),11,0)
+        self.layout.addWidget(self.before,11,2)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
             Qt.Horizontal, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
+        self.layout.addWidget(buttons)
 
     def update_query_parameters(self):
-        self.query_parameters.person_name = self.person_list.currentText()
-        self.query_parameters.assigned_by = self.assigned_by_list.currentText()
-        if self.after.specialValueText() == ' ':
-            self.query_parameters.after = None
-        else:
-            self.query_parameters.after = self.after.dateTime()
+        self.query_parameters.person_name   = self.person_list.currentText()
+        self.query_parameters.assigned_by   = self.assigned_by_list.currentText()
+        self.query_parameters.path          = self.path.text()
+        self.query_parameters.path_operator = self.path_operator.currentText()
 
-    def clear_date(self,date_edit:QDateTimeEdit):
-        date_edit.setSpecialValueText( " " )
-        date_edit.setDate( QDate.fromString( "01/01/0001", "dd/MM/yyyy" ) )
+        self.query_parameters.nr_of_faces               = self.nr_of_faces.value()
+        self.query_parameters.nr_of_faces_operator      = self.nr_of_faces_operator.currentText()
+        self.query_parameters.nr_of_persons             = self.nr_of_persons.value()
+        self.query_parameters.nr_of_persons_operator    = self.nr_of_persons_operator.currentText()
+
+        self.query_parameters.after         = self.after.dateTime().toPyDateTime()
+        self.query_parameters.before        = self.before.dateTime().toPyDateTime()
+
+        self.query_parameters.is_existing   = self.exists_map[self.is_existing.currentText()]
+        self.query_parameters.has_duplicate = self.duplicate_map[self.duplicate.currentText()]
+
 
     @staticmethod
     def get_query_parameters(main_window:PhotosMainWindow):
@@ -284,9 +347,7 @@ class PhotosMainWindow(QMainWindow):
     def query_custom(self):
         query_parameters, result = QueryDialog.get_query_parameters(self)
         if result:
-            person_name = query_parameters.person_name
-            assigned_by = query_parameters.assigned_by
-            self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_custom(assigned_by = assigned_by,person_name = person_name )]
+            self.current_photos: list[Photo] = [ photo for photo in PhotoProject.get_custom(query_parameters)]
     
     def show_status_query(self):
         nrFound = len(self.current_photos)
@@ -381,6 +442,7 @@ class PhotosMainWindow(QMainWindow):
         self.close_action.setEnabled(False)
         self.open_action.setEnabled(True)
         self.query_group_act.setEnabled(False)
+        self.clear_photo()
 
     def exit(self):
         if self.close_action.isEnabled():

@@ -9,23 +9,24 @@ import logging
 
 class PhotoQueryParameters:
     
+    STR_OPERATORS = ['Contains','Equal']
+    NR_OPERATORS = ['Ignore','Equal','Less than','Greater than']
+
     def __init__(self):
         self.after: datetime            = None
         self.before: datetime           = None
-        self.path: str                  = None
-        self.is_duplicate: bool         = None
+        self.path: str                  = ''
+        self.has_duplicate: bool        = None
         self.is_existing: bool          = None
         
-        self.person_name: str           = None
-        self.nr_of_faces: int           = None
-        self.nr_of_person: int          = None
+        self.person_name: str           = ''
+        self.nr_of_faces: int           = 0
+        self.nr_of_persons: int         = 0
+        self.assigned_by:str            = ''
 
-        self.nr_of_faces_operator: int   = None
-        self.nr_of_person_operator: int  = None
-        self.assigned_by:str             = None
-
-
-
+        self.path_operator: str             = 'Contains'
+        self.nr_of_faces_operator: str      = 'Ignore'
+        self.nr_of_persons_operator: str    = 'Ignore'
 
 """
 For now the peewee based model only supports one active database
@@ -175,17 +176,60 @@ class PhotoProject:
         )
         return photos_with_recognized_person_query
 
-    @classmethod
-    def get_custom(cls,assigned_by:str,person_name:str):
-        query = ( Photo
-            .select()
-            .join(PhotoPerson,on=(PhotoPerson.photo == Photo.photo_id))
-            .join(Person,on=(Person.person_id == PhotoPerson.person_id))
-            .group_by(Photo.photo_id)
-            .where( (PhotoPerson.assigned_by == assigned_by) & (Person.name == person_name))
-        )
-        return query
     
+    @staticmethod
+    def get_custom(query_parameters:PhotoQueryParameters):
+        query = ( Photo
+            .select(Photo)
+            .join(PhotoPerson,'LEFT JOIN',on=(PhotoPerson.photo == Photo.photo_id))
+            .join(Person,'LEFT JOIN',on=(Person.person_id == PhotoPerson.person_id))
+            .group_by(Photo.photo_id)
+        )
+
+        if query_parameters.assigned_by is not None and query_parameters.assigned_by != '':
+            query = query.where( PhotoPerson.assigned_by == query_parameters.assigned_by)
+        if query_parameters.person_name is not None and query_parameters.person_name != '':
+            query = query.where( Person.name == query_parameters.person_name)
+        if query_parameters.path is not None and query_parameters.path != '':
+            if query_parameters.path_operator == 'Contains':
+                query = query.where( Photo.path.contains(query_parameters.path))
+            else:
+                query = query.where( Photo.path == query_parameters.path)
+        if query_parameters.is_existing is not None:
+            query = query.where( Photo.exists == query_parameters.is_existing)
+
+        if query_parameters.after is not None:
+            query = query.where( Photo.timestamp >= query_parameters.after)
+        if query_parameters.before is not None:
+            query = query.where( Photo.timestamp <= query_parameters.before)
+
+        if query_parameters.nr_of_faces_operator == 'Greater than':
+            query = query.having( fn.Count(PhotoPerson.id) > query_parameters.nr_of_faces)
+        if query_parameters.nr_of_faces_operator == 'Equal':
+            query = query.having( fn.Count(PhotoPerson.id) == query_parameters.nr_of_faces)
+        if query_parameters.nr_of_faces_operator == 'Less than':
+            query = query.having( fn.Count(PhotoPerson.id) < query_parameters.nr_of_faces)
+
+        if query_parameters.nr_of_persons_operator == 'Greater than':
+            query = query.having( fn.Count(Person.person_id) > query_parameters.nr_of_persons)
+        if query_parameters.nr_of_persons_operator == 'Equal':
+            query = query.having( fn.Count(Person.person_id) == query_parameters.nr_of_persons)
+        if query_parameters.nr_of_persons_operator == 'Less than':
+            query = query.having( fn.Count(Person.person_id) < query_parameters.nr_of_persons)
+        if query_parameters.has_duplicate is not None:
+
+            duplicate_md5_query = ( Photo
+                .select(Photo.md5)
+                .group_by(Photo.md5)
+                .having(fn.Count(Photo.md5) > 1)
+            )
+            if query_parameters.has_duplicate:
+                query = query.join(duplicate_md5_query,on=(duplicate_md5_query.c.md5 == Photo.md5))
+            else:
+                query = query.join(duplicate_md5_query,JOIN.LEFT_OUTER,on=(duplicate_md5_query.c.md5 == Photo.md5))
+                query = query.where( duplicate_md5_query.c.md5.is_null())
+        logging.info(f'The custom query is: {str(query)}' )
+        return query
 
     @classmethod
     def get_random_photo(cls):

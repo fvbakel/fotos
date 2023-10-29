@@ -117,15 +117,14 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 
 - [ ] New Project function
 - [ ] Progress bar
-- [ ] Face dect in GUI
+- [ ] Face detect in GUI
 - [ ] Scan in GUI
 - [X] Log level in separate menu
 - [ ] View menu, introduce different views (file list, minuatures)
 - [ ] Dockable panels
-- [ ] Separate query panel, improve search (time, person)
+- [X] Separate query panel, improve search (time, person)
 - [ ] Output filename
-- [ ] Query statistics
-- [ ] Enable and disable menu items
+- [ ] Enable and disable menu items when not applicable
 - [ ] Improve duplicates functions
 - [ ] Extract and export functions
 - [ ] Add processing management dialogs
@@ -138,3 +137,4 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 - [ ] Detect other objects than faces
 - [ ] Manage basedirs
 - [ ] Constants for some meaningfull strings
+- [ ] Display timestamp and exists in details
