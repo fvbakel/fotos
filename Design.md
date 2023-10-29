@@ -136,5 +136,6 @@ The database model is based on [peewee-orm](https://docs.peewee-orm.com/)
 - [ ] On/of face rectangles
 - [ ] Detect other objects than faces
 - [ ] Manage basedirs
-- [ ] Constants for some meaningfull strings
-- [ ] Display timestamp and exists in details
+- [ ] Constants for some meaning full strings
+- [ ] Display timestamp and is duplicate in details
+- [ ] Remember previous custom search and allow searched to be stored

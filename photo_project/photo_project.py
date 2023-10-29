@@ -181,8 +181,8 @@ class PhotoProject:
     def get_custom(query_parameters:PhotoQueryParameters):
         query = ( Photo
             .select(Photo)
-            .join(PhotoPerson,'LEFT JOIN',on=(PhotoPerson.photo == Photo.photo_id))
-            .join(Person,'LEFT JOIN',on=(Person.person_id == PhotoPerson.person_id))
+            .join(PhotoPerson,JOIN.LEFT_OUTER,on=(PhotoPerson.photo == Photo.photo_id))
+            .join(Person,JOIN.LEFT_OUTER,on=(Person.person_id == PhotoPerson.person_id))
             .group_by(Photo.photo_id)
         )
 

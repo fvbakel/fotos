@@ -226,7 +226,8 @@ class PhotosMainWindow(QMainWindow):
     def _init_photo_layout(self):
         self.image_frame = QLabel()
         self.info = QLabel()
-        self.info.setMaximumHeight(15)
+        self.info.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.info.setMaximumHeight(20)
         self.prev_button = QPushButton('Previous')
         self.prev_button.clicked.connect(self.show_previous_photo)
         self.random_button = QPushButton('Random')
@@ -518,10 +519,10 @@ class PhotosMainWindow(QMainWindow):
             self.image_frame.setPixmap(QPixmap.fromImage(self.image))
             #self.image_frame.setScaledContents( True )
             self.image_frame.setSizePolicy( QSizePolicy.Ignored, QSizePolicy.Ignored )
-            self.info.setText(f"Photo: {self.current_photo.photo_id }: {self.current_photo.path}")
+            self.info.setText(f"{self.current_photo.full_path}\t timestamp: {self.current_photo.timestamp}" )
             self.show_status_query()
         except Exception as err:
-            logging.error(err)
+            logging.exception(err)
             err_box = QMessageBox()
             err_box.setIcon(QMessageBox.Warning)
             err_box.setText('A error occurred in photo display')
